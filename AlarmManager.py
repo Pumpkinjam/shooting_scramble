@@ -1,59 +1,5 @@
 import time
 
-# Failed making Alarm class by multiprocessing
-"""
-# do event() after t(s)
-class Alarm:
-    '''
-    Thread thr;
-    float started_time;
-    int clock;
-    Function event;
-
-    private int id;
-    '''
-    def __init__(self, id, t=-1, fun=None):
-        self.id = id
-        self.set_timer(t=t, fun=fun)
-    
-    def set_timer(self, t, fun=None):
-        self.started_time = time.time()
-        self.clock = t
-        if fun is None:
-            self.event = Alarm._empty_fun
-        else:
-            self.event = fun
-        
-        self.thr = Thread(target=self.alarm_function)
-        self.thr.start()
-        self.thr.join()
-
-    def stop(self):
-        self.thr = None
-        self.clock = -1
-        
-    def alarm_function(self) -> None:
-        time.sleep(self.clock)
-        if self.clock > -1: self.event()
-        '''
-        now_time = time.time()
-        while True:
-          if self.clock == -1: return
-
-          if time.time() > self.started_time + self.clock:
-            self.event()
-            break
-         '''
-        
-
-    def toString(self) -> str:
-        return '='*20 + f"Alarm #{self.id} :\n  started_time = {self.started_time},\n  timer = {self.clock},\n  event = {self.event}\n" + '='*20
-    
-    @staticmethod
-    def _empty_fun():
-        print(f'Alarm : event called.')
-"""
-
 class Alarm:
     '''
     float clock; // once Alarm have been done, clock becomes -1

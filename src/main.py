@@ -1,3 +1,4 @@
+from pkjgame import *
 from PIL import Image, ImageDraw, ImageFont
 import time
 import random

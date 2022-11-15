@@ -1,4 +1,4 @@
-from digitalio import DigitalInOut, Direction
+from digitalio import DigitalInOut
 from adafruit_rgb_display import st7789
 import board
 
@@ -8,7 +8,7 @@ class DisplayManager:
         self.cs_pin = DigitalInOut(board.CE0)
         self.dc_pin = DigitalInOut(board.D25)
         self.reset_pin = DigitalInOut(board.D24)
-        self.BAUDRATE = 24000000
+        self.BAUDRATE = 24000 * 1000
 
         self.spi = board.SPI()
         self.disp = st7789.ST7789(
