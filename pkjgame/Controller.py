@@ -68,8 +68,3 @@ class Controller:
     def activate(self, key: str):
         self.input_dict[key] = self.unactivated_keys[key]   # re-activate
         del self.unactivated_keys[key]                      # and then remove from unactivated-list
-    
-
-
-    
-    

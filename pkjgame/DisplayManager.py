@@ -53,10 +53,12 @@ class DisplayManager:
             self.objects = obj_list
         
         for obj in self.objects:
-            if obj is not GameObject:
+            if not isinstance(obj, GameObject):
                 print('Something went wrong...')
+                print(type(obj))
+                print(obj)
             else:
-                self.paper = Image.alpha_composite(self.paper, obj.img)
+                self.paper.paste(obj.img, obj.center.to_tuple())
         
           #self.pen = ImageDraw.Draw(self.paper)
         self.display()
@@ -67,3 +69,9 @@ class DisplayManager:
     
     def display(self):
         self.disp.image(self.paper)
+
+    @staticmethod
+    def get_rectangle_image(width: int, height: int, color: tuple):
+        rec = Image.new('RGBA', (width, height))
+        ImageDraw.Draw(rec).rectangle((0, 0, 32, 32), fill=color)
+        return rec

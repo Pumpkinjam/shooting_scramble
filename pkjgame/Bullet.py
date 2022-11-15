@@ -1,6 +1,7 @@
 from pkjgame import *
 import numpy as np
 
+'''
 class Bullet:
     def __init__(self, position, command):
         self.appearance = 'rectangle'
@@ -47,13 +48,7 @@ class Bullet:
                 self.state = 'hit'
 
     def overlap(self, ego_position, other_position):
-        '''
-        ?‘ê°œì˜ ?‚¬ê°í˜•(bullet position, enemy position)?´ ê²¹ì¹˜?Š”ì§? ?™•?¸?•˜?Š” ?•¨?ˆ˜
-        ì¢Œí‘œ ?‘œ?˜„ : [x1, y1, x2, y2]
-        
-        return :
-            True : if overlap
-            False : if not overlap
-        '''
         return ego_position[0] > other_position[0] and ego_position[1] > other_position[1] \
                  and ego_position[2] < other_position[2] and ego_position[3] < other_position[3]
+                 
+'''

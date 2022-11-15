@@ -16,11 +16,13 @@ class GameObject(metaclass=ABCMeta):
     '''
 
     @abstractmethod
-    def __init__(self, x, y, width, height, image=None):
+    def __init__(self, id, x, y, width, height, image=None):
         if image is not None:
             self.img = image
         else:
-            self.img = Image.new("RGBA", (x,y));
+            self.img = Image.new("RGBA", (x,y))
+        
+        self.id = id
         self.state = None
         self.center = Pos(x, y)
         self.outline = "#FFFFFF"

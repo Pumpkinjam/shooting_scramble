@@ -27,11 +27,11 @@ class Alarm:
     
 
     def getPassedTime(self) -> float:
-        if self.clock == -1.: return -1.;
+        if self.clock == -1.: return -1.
 
         tmp = self.timing - time.time()
-        if tmp < 0: return -1.;
-        else: return tmp;
+        if tmp < 0: return -1.
+        else: return tmp
         
     
     # reset the start_time and clock (with new_clock)

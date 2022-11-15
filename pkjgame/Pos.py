@@ -8,8 +8,7 @@ class Pos:
     '''
 
     def __init__(self, x, y):
-        self.x = x;
-        self.y = y;
+        self.x = x; self.y = y
 
     def at_same_position_to(self, other):
         return (self.x == other.x and self.y == other.y)
@@ -36,6 +35,9 @@ class Pos:
     
     def distance_to(self, other) -> float:
         return sqrt(self.x * self.x + self.y * self.y)
+    
+    def to_tuple(self) -> tuple:
+        return (self.x, self.y)
     
     def to_string(self) -> str:
         return f'[Pos ({self.x}, {self.y})]'
