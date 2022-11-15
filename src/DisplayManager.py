@@ -1,19 +1,28 @@
 from digitalio import DigitalInOut
 from adafruit_rgb_display import st7789
+from PIL import Image, ImageDraw, ImageFont
 import board
 
 class DisplayManager:
 
+    bg_length = 240
+
     def __init__(self):
+        
+        self.width = DisplayManager.bg_length
+        self.height = DisplayManager.bg_length
+
         self.cs_pin = DigitalInOut(board.CE0)
         self.dc_pin = DigitalInOut(board.D25)
         self.reset_pin = DigitalInOut(board.D24)
         self.BAUDRATE = 24000 * 1000
 
         self.spi = board.SPI()
+        
         self.disp = st7789.ST7789(
                     self.spi,
-                    height=240,
+                    width=self.width,
+                    height=self.height,
                     y_offset=80,
                     rotation=180,
                     cs=self.cs_pin,
@@ -27,10 +36,29 @@ class DisplayManager:
         self.backlight.switch_to_output()
         self.backlight.value = True
 
-        # Create blank image for drawing.
-        # Make sure to create image with mode 'RGB' for color.
-        self.width = self.disp.width
-        self.height = self.disp.height
+    def refresh(self):
+        pass
     
-    def display(self):
-        self.disp.image() #todo
+    def set_background(self, fill: tuple):
+        bg = ImageDraw.Draw(Image.new("RGB", (self.width, self.height)))
+
+    def display(self, image):
+        self.disp.image(image) #todo
+
+def main():
+    dp = DisplayManager()
+    # paper
+    my_image = Image.new("RGBA", (dp.width, dp.height))
+    # pen (on the paper)
+    my_draw = ImageDraw.Draw(my_image)
+    # with pen, draw a rectangle (on the paper)
+    my_draw.rectangle((0, 0, dp.width, dp.height), fill=(255, 0, 0, 100))
+    # disp shows paper
+    dp.display(my_image)
+    
+    import time
+    time.sleep(10)
+    my_draw.rectangle((0, 0, dp.width, dp.height), fill = (255, 255, 255, 100))
+    dp.display(my_image)
+
+if __name__ == '__main__': main()
