@@ -1,3 +1,5 @@
+from pkjgame import *
+
 from digitalio import DigitalInOut
 from adafruit_rgb_display import st7789
 from PIL import Image, ImageDraw, ImageFont
@@ -40,8 +42,8 @@ class DisplayManager:
         # fields initialization
         # these are updated by refreshing
         self.bg = Image.new("RGBA", (self.width, self.height))
-        self.paper = bg.copy()
-        self.pen = ImageDraw.Draw(self.paper)
+        self.paper = self.bg.copy()
+          #self.pen = ImageDraw.Draw(self.paper)
 
         self.refresh(obj_list)
 
@@ -56,7 +58,7 @@ class DisplayManager:
             else:
                 self.paper = Image.alpha_composite(self.paper, obj.img)
         
-        self.pen = ImageDraw.Draw(self.paper)
+          #self.pen = ImageDraw.Draw(self.paper)
         self.display()
     
     def set_background(self, fill: tuple):
@@ -65,31 +67,3 @@ class DisplayManager:
     
     def display(self):
         self.disp.image(self.paper)
-
-
-'''delete lines below before completing'''
-def main():
-    dp = DisplayManager([])
-    dp.set_background((255, 255, 255, 100))
-    dp.set_background((0,0,0,100))
-    img = dp.paper
-    drawer = dp.pen
-    drawer.rectangle
-    '''
-    dp = DisplayManager()
-    # paper
-    my_image = Image.new("RGBA", (dp.width, dp.height))
-    # pen (on the paper)
-    my_draw = ImageDraw.Draw(my_image)
-    # with pen, draw a rectangle (on the paper)
-    my_draw.rectangle((0, 0, dp.width, dp.height), fill=(255, 0, 0, 100))
-    # disp shows paper
-    dp.display(my_image)
-    
-    import time
-    time.sleep(10)
-    my_draw.rectangle((0, 0, dp.width, dp.height), fill = (255, 255, 255, 100))
-    dp.display(my_image)
-    '''
-
-if __name__ == '__main__': main()

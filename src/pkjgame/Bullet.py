@@ -1,3 +1,4 @@
+from pkjgame import *
 import numpy as np
 
 class Bullet:
@@ -47,8 +48,8 @@ class Bullet:
 
     def overlap(self, ego_position, other_position):
         '''
-        λ‘κ°μ μ‚¬κ°ν•(bullet position, enemy position)μ΄ κ²ΉμΉλ”μ§€ ν™•μΈν•λ” ν•¨μ
-        μΆν‘ ν‘ν„ : [x1, y1, x2, y2]
+        ?‘κ°μ ?‚¬κ°ν•(bullet position, enemy position)?΄ κ²ΉμΉ?”μ§? ?™•?Έ?•?” ?•¨?
+        μΆν‘ ?‘?„ : [x1, y1, x2, y2]
         
         return :
             True : if overlap

@@ -1,24 +1,25 @@
 from pkjgame import *
+
 from PIL import Image, ImageDraw, ImageFont
 import time
 import random
 import cv2 as cv
 import numpy as np
 from colorsys import hsv_to_rgb
-from Enemy import Enemy
-from Bullet import Bullet
-from Character import Character
-from Joystick import Joystick
 
 def main():
-    joystick = Joystick()
-    my_image = Image.new("RGB", (joystick.width, joystick.height))
-    my_draw = ImageDraw.Draw(my_image)
-    my_draw.rectangle((0, 0, joystick.width, joystick.height), fill=(255, 0, 0, 100))
-    joystick.disp.image(my_image)
+    rec = Image.new('RGBA', (32, 32))
+    ImageDraw(rec).rectangle((0, 0, 32, 32), fill=(0,0,0,100))
     
-    my_circle = Character(joystick.width, joystick.height)
-    my_draw.rectangle((0, 0, joystick.width, joystick.height), fill = (255, 255, 255, 100))
+    #gm = GameManager()
+    me = Player(60, 60, 30, 30, rec)
+    
+    dm = DisplayManager([me])
+    am = AlarmManager()
+    
+    dm.set_background((255, 255, 255, 100))
+    
+    '''
     enemy_1 = Enemy((50, 50))
     enemy_2 = Enemy((200, 200))
     enemy_3 = Enemy((150, 50))
@@ -67,7 +68,7 @@ def main():
 
 
         joystick.disp.image(my_image)
-        
+        '''
 
 if __name__ == '__main__':
     main()

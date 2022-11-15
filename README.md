@@ -7,3 +7,6 @@ esw_KAU2022 project
 >> construct basic game elements
 >
 >> and more...
+
+> Additionally...
+>> loading & shutting down screen?

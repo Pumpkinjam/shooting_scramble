@@ -1,3 +1,4 @@
+from pkjgame import *
 import time
 
 class Alarm:
