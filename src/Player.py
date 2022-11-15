@@ -1,8 +1,6 @@
 import numpy as np
 
-# All Characters (Player, Enemy) must be extended by this class
-class Character:
-    #todo
+class Player:
     def __init__(self, width, height):
         self.appearance = 'circle'
         self.state = None

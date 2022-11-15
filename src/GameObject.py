@@ -1,8 +1,8 @@
 import numpy as np
 
-# All Characters (Player, Enemy) must be extended by this class
-class Character:
-    #todo
+# All Objects in game (Character, Item, Bullets...) must be extended by this class
+class GameObject:
+    # todo... set "img" field (from image_src (or pixel_info))
     def __init__(self, width, height):
         self.appearance = 'circle'
         self.state = None
