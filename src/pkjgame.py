@@ -10,6 +10,74 @@ import board
 from digitalio import DigitalInOut, Direction
 from adafruit_rgb_display import st7789
 
+
+#############################################################################
+#                                                                           #
+# GameManager.py                                                            #
+#                                                                           #
+#############################################################################
+
+
+class GameManager:
+    
+    def __init__(self, fps, screen_width, screen_height):
+        self.fps = fps
+        self.spf = 1/fps
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.object_id = 0
+
+
+    def start(self):
+        self.setup()
+        try:
+            self.manage()
+        except:
+            return
+
+    def stop(self):
+        raise GameManager.GameEndException('Game Stopped.')
+
+    def setup(self):
+        self.am = AlarmManager()
+        self.dm = DisplayManager()
+        self.rm = RoomManager(self.screen_width, self.screen_height)
+        self.user = UserInfo()
+        
+        self.rm.create_room(self.screen_width, self.screen_height)
+        player = self.rm.current_room.create_object(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
+
+        self.fps_alarm = self.am.new_alarm(self.spf)
+        
+        self.dm.display(self.rm.current_room)
+        time.sleep(4)
+
+    def manage(self):
+        while True:
+            if self.fps_alarm.resetAlarm():
+                self.dm.display(self.rm.current_room)
+
+    
+    def create(self, cls: type, args: tuple):
+        self.rm.objects[self.object_id] = cls(self.object_id, *args)
+    
+    def destroy(self, id):
+        del self.objects[id]
+
+
+    class GameEndException(Exception):
+        def __init__(self, msg=''):
+            print('Game Ended' if msg == '' else msg)
+            super().__init__(msg)
+
+
+#############################################################################
+#                                                                           #
+# Pos.py                                                                    #
+#                                                                           #
+#############################################################################
+
+
 class Pos:
     '''
     float x, y;
@@ -186,9 +254,9 @@ class DisplayManager:
         # these are updated by refreshing
         self.bg = Image.new("RGBA", (self.width, self.height))
         self.paper = self.bg.copy()
-          #self.pen = ImageDraw.Draw(self.paper)
+        #self.pen = ImageDraw.Draw(self.paper)
 
-        self.refresh()
+        self.display()
         
     """
     def refresh(self, obj_list=None):
@@ -225,15 +293,16 @@ class DisplayManager:
         self.display()
     
     @staticmethod
-    def image_build(img_width, img_height, background=None, obj_list=None) -> Image:
+    def image_build(img_width, img_height, background=None, obj_dict=None) -> Image:
         if background is None:
             background = Image.new("RGBA", (img_width, img_height))
         
         paper = background
         
-        for obj in obj_list:
+        for obj in obj_dict.values():
             if not isinstance(obj, GameObject):
-                print('DisplayManager.image_build() : given objects must be GameObject')
+                print()
+                raise Exception('DisplayManager.image_build() : given objects must be GameObject')
             else:
                 paper.paste(obj.img, obj.center.to_tuple())
         
@@ -248,62 +317,114 @@ class DisplayManager:
 
 #############################################################################
 #                                                                           #
-# GameManager.py                                                            #
+# RoomManager.py                                                            #
 #                                                                           #
 #############################################################################
 
 
-class GameManager:
-    
-    def __init__(self, fps, screen_width, screen_height):
-        self.fps = fps
-        self.spf = 1/fps
-        self.screen_width = screen_width
-        self.screen_height = screen_height
+class Room:
+
+    def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
+        self.id = id
         self.object_id = 0
+        self.width = room_width
+        self.height = room_height
+        self.objects = objs        # keys: id (int), values: obj (GameObject)
+        self.deleted = False
+        if bg is None:
+            self.background = Image.new("RGBA", (room_width, room_height))
+            ImageDraw.Draw(self.background).rectangle((0, 0, room_width, room_height), (255,255,255,100))
+        else:
+            self.background = bg
 
+        self.reset_image()
 
-    def start(self):
-        self.setup()
-        try:
-            self.manage()
-        except:
+    def reset_image(self) -> None:
+        self.image = DisplayManager.image_build(self.width, self.height, self.background, self.objects)
+        
+
+    def create_object(self, cls: type, args: tuple):
+        self.object_id += 1
+        obj = cls(self.object_id, *args)
+
+        self.objects[self.object_id] = obj
+        
+        print(f'{cls} created.')
+        self.reset_image()
+        return obj
+    
+    def del_object(self, obj):
+        del self.objects[obj.id]
+        self.reset_image()
+    
+    def get_objects(self):
+        return self.objects
+
+    def get_image(self):
+        return self.image
+    
+    
+class RoomManager:
+
+    def __init__(self, first_room_width, first_room_height):
+        self.current_id = 0
+        self.number_rooms = 0
+        self.rooms = dict()
+
+        r = self.create_room(first_room_width, first_room_height)
+        self.first_room = r
+        self.current_room = r
+
+    def create_room(self, room_width, room_height, objs=dict()):
+        self.number_rooms += 1
+        self.current_id += 1
+        r = Room(self.current_id, room_width, room_height, objs=objs)
+
+        if self.number_rooms == 1:
+            self.first_room = r
+            self.current_room = r
+
+        self.rooms[self.current_id] = r
+        return r
+
+    # move to another room before deletion
+    # else, RoomManager automatically set current_room to first_room
+    def del_room(self, room: Room):
+        if room.id not in self.rooms.keys():
+            print('from del_room : that room does not belong to this manager.')
             return
-
-    def stop(self):
-        raise GameManager.GameEndException('Game Stopped.')
-
-    def setup(self):
-        self.am = AlarmManager()
-        self.dm = DisplayManager()
-        self.rm = RoomManager()
-        self.user = UserInfo()
         
-        self.rm.create_room(self.screen_width, self.screen_height)
-        self.rm.current_room.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
+        self.number_rooms -= 1
+        if (self.number_rooms == 0): raise RoomManager.NoRoomException()
 
-        self.fps_alarm = self.am.new_alarm(self.spf)
+        # trying to delete first_room
+        if self.first_room == room:
+            for r in self.rooms.values():
+                if r != room: self.first_room = r
+                break
         
-        self.dm.display(self.rm.current_room)
+        # trying to delete current_room
+        if self.current_room == room:
+            self.current_room = self.first_room
+        
+        room.deleted = True
+        del self.rooms[room.id]
 
-    def manage(self):
-        while True:
-            if self.fps_alarm.resetAlarm():
-                self.dm.display(self.rm.current_room)
+    def goto_room(self, room=None, room_id=None):
+        if (room is None and room_id is None): 
+            print('goto_room must have at least 1 arguments.')
+            raise Exception()
+        
+        if room_id is None:
+            self.current_room = room
+        elif room is None:
+            self.current_room = self.rooms[room_id]
 
-    
-    def create(self, cls: type, args: tuple):
-        self.rm.objects[self.object_id] = cls(self.object_id, *args)
-    
-    def destroy(self, id):
-        del self.objects[id]
-
-
-    class GameEndException(Exception):
+    class NoRoomException(Exception):
         def __init__(self, msg=''):
-            print('Game Ended' if msg == '' else msg)
+            print('No more rooms in RoomManager.' if msg == '' else msg)
             super().__init__(msg)
-
+        
 
 #############################################################################
 #                                                                           #
@@ -430,7 +551,7 @@ class GameObject(metaclass=ABCMeta):
         lt = ran[0]; rb = ran[1]
         return (lt.x < self.x < rb.x and lt.y < self.y < rb.y)
 
-    def check_collision(self, other: GameObject):
+    def check_collision(self, other):
         return self.is_in_range(other.get_range())
 
 
