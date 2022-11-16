@@ -9,11 +9,13 @@ from colorsys import hsv_to_rgb
 '''
 
 def main():
+    
     gm = GameManager(30, 240, 240)
+    gm.start()
     
     
 if __name__ == '__main__':
-    main()    
+    main()
     '''
     enemy_1 = Enemy((50, 50))
     enemy_2 = Enemy((200, 200))

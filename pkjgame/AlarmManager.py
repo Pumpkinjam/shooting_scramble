@@ -53,16 +53,16 @@ class Alarm:
 
 
 class AlarmManager:
-    current_id = 0  # primary key for alarms
 
     def __init__(self):
+        self.current_id = 0  # primary key for alarms
         self.alarms = dict()
         # self.threads = dict()
     
     def new(self, t=-1): return self.new_alarm(t)
     def new_alarm(self, t=-1) -> Alarm:
-        AlarmManager.current_id += 1
-        return self._new_alarm(AlarmManager.current_id, t)
+        self.current_id += 1
+        return self._new_alarm(self.current_id, t)
 
     def is_done(self, obj_alarm: Alarm) -> bool:
         try:
