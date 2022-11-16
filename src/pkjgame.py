@@ -42,7 +42,7 @@ class Pos:
         self.y += y
     
     def distance_to(self, other) -> float:
-        return sqrt(self.x * self.x + self.y * self.y)
+        return sqrt((self.x - other.x) ** 2  + (self.y - other.y) ** 2)
     
     def to_tuple(self) -> tuple:
         return (self.x, self.y)
@@ -50,6 +50,12 @@ class Pos:
     def to_string(self) -> str:
         return f'[Pos ({self.x}, {self.y})]'
 
+
+#############################################################################
+#                                                                           #
+# AlarmManager.py                                                           #
+#                                                                           #
+#############################################################################
 
 class Alarm:
     '''
@@ -103,16 +109,16 @@ class Alarm:
 
 
 class AlarmManager:
-    current_id = 0  # primary key for alarms
 
     def __init__(self):
+        self.current_id = 0  # primary key for alarms
         self.alarms = dict()
         # self.threads = dict()
     
     def new(self, t=-1): return self.new_alarm(t)
     def new_alarm(self, t=-1) -> Alarm:
-        AlarmManager.current_id += 1
-        return self._new_alarm(AlarmManager.current_id, t)
+        self.current_id += 1
+        return self._new_alarm(self.current_id, t)
 
     def is_done(self, obj_alarm: Alarm) -> bool:
         try:
@@ -135,11 +141,18 @@ class AlarmManager:
 
 
 
-class DisplayManager:
+#############################################################################
+#                                                                           #
+# DisplayManager.py                                                         #
+#                                                                           #
+#############################################################################
 
+
+class DisplayManager:
+    
     bg_length = 240
 
-    def __init__(self, obj_list=None):
+    def __init__(self):
         # basic fields
         self.objects = tuple()
         self.width = DisplayManager.bg_length
@@ -175,10 +188,14 @@ class DisplayManager:
         self.paper = self.bg.copy()
           #self.pen = ImageDraw.Draw(self.paper)
 
-        self.refresh(obj_list)
-
+        self.refresh()
+        
+    """
     def refresh(self, obj_list=None):
+        self.paper = DisplayManager.image_build(self.width, self.height, self.bg, obj_list)
+        '''
         self.paper = self.bg.copy()
+        
         if obj_list is not None:
             self.objects = obj_list
         
@@ -190,21 +207,50 @@ class DisplayManager:
             else:
                 self.paper.paste(obj.img, obj.center.to_tuple())
         
-          #self.pen = ImageDraw.Draw(self.paper)
+        '''
         self.display()
+    """
     
     def set_background(self, fill: tuple):
         ImageDraw.Draw(self.bg).rectangle((0, 0, self.width, self.height), fill)    # bg becomes new background
         self.refresh(self.objects)  # update!
     
-    def display(self):
+    # if img not None, set instance(DisplayManager)'s paper to img
+    def display(self, room=None):
+        if room is not None: self.paper = room.get_image()
         self.disp.image(self.paper)
+
+    def paste_something(self, img: Image, position: tuple) -> None:
+        self.paper.paste(img, position)
+        self.display()
+    
+    @staticmethod
+    def image_build(img_width, img_height, background=None, obj_list=None) -> Image:
+        if background is None:
+            background = Image.new("RGBA", (img_width, img_height))
+        
+        paper = background
+        
+        for obj in obj_list:
+            if not isinstance(obj, GameObject):
+                print('DisplayManager.image_build() : given objects must be GameObject')
+            else:
+                paper.paste(obj.img, obj.center.to_tuple())
+        
+        return paper
 
     @staticmethod
     def get_rectangle_image(width: int, height: int, color: tuple):
         rec = Image.new('RGBA', (width, height))
         ImageDraw.Draw(rec).rectangle((0, 0, 32, 32), fill=color)
         return rec
+
+
+#############################################################################
+#                                                                           #
+# GameManager.py                                                            #
+#                                                                           #
+#############################################################################
 
 
 class GameManager:
@@ -228,38 +274,42 @@ class GameManager:
         raise GameManager.GameEndException('Game Stopped.')
 
     def setup(self):
-        self.objects = dict()       # keys: id (int), values: obj (GameObject)
         self.am = AlarmManager()
         self.dm = DisplayManager()
+        self.rm = RoomManager()
         self.user = UserInfo()
+        
+        self.rm.create_room(self.screen_width, self.screen_height)
+        self.rm.current_room.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
 
-        self.dm.set_background((255, 255, 255, 100))
         self.fps_alarm = self.am.new_alarm(self.spf)
         
-        self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
-        self.dm.refresh(self.objects.values())
-        pass
+        self.dm.display(self.rm.current_room)
 
     def manage(self):
         while True:
             if self.fps_alarm.resetAlarm():
-                self.dm.refresh(self.objects.values())
-
+                self.dm.display(self.rm.current_room)
 
     
     def create(self, cls: type, args: tuple):
-        self.object_id += 1
-        self.objects[self.object_id] = cls(self.object_id, *args)
+        self.rm.objects[self.object_id] = cls(self.object_id, *args)
     
     def destroy(self, id):
         del self.objects[id]
-
 
 
     class GameEndException(Exception):
         def __init__(self, msg=''):
             print('Game Ended' if msg == '' else msg)
             super().__init__(msg)
+
+
+#############################################################################
+#                                                                           #
+# UserInfo.py                                                               #
+#                                                                           #
+#############################################################################
 
 
 class UserInfo:
@@ -333,8 +383,14 @@ class UserInfo:
         s = tmp
 
         return f'{d//SEC_IN_DAY}days, {h//SEC_IN_HOUR}hours {m//SEC_IN_MIN}minutes {s}seconds'
-        
-        
+
+
+#############################################################################
+#                                                                           #
+# GameObject.py                                                             #
+#                                                                           #
+#############################################################################
+
 
 # All Objects in game (Character, Item, Bullets...) must be extended by this class
 # This class is abstract (Interface-like)
@@ -366,7 +422,23 @@ class GameObject(metaclass=ABCMeta):
     @abstractmethod
     def move_to(self, x, y):
         self.center.move_to(x, y)
-        
+    
+    def get_range(self) -> tuple:   # (Pos1, Pos2)
+        return (Pos(self.x - self.width/2, self.y - self.height/2), Pos(self.x + self.width/2, self.y + self.height/2))
+    
+    def is_in_range(self, ran: tuple):
+        lt = ran[0]; rb = ran[1]
+        return (lt.x < self.x < rb.x and lt.y < self.y < rb.y)
+
+    def check_collision(self, other: GameObject):
+        return self.is_in_range(other.get_range())
+
+
+#############################################################################
+#                                                                           #
+# Character.py                                                              #
+#                                                                           #
+#############################################################################
 
 
 # All Characters (Player, Enemy) must be extended by this class
@@ -381,6 +453,12 @@ class Character(GameObject):
     def move_to(self, x, y):
         self.center.move_to(x, y)
 
+
+#############################################################################
+#                                                                           #
+# Enemy.py                                                                  #
+#                                                                           #
+#############################################################################
 
 
 class Enemy(Character):
@@ -401,6 +479,14 @@ class Enemy(Character):
     def move_to(self, x, y):
         self.center.move_to(x, y)
 
+
+#############################################################################
+#                                                                           #
+# Player.py                                                                 #
+#                                                                           #
+#############################################################################
+
+
 class Player(Character):
 
     weapon_list = []    # to be implemented (here, or maybe in other class)
@@ -419,6 +505,12 @@ class Player(Character):
     def move_to(self, x, y):
         self.center.move_to(x, y)
 
+
+#############################################################################
+#                                                                           #
+# Controller.py                                                             #
+#                                                                           #
+#############################################################################
 
 
 class Controller:

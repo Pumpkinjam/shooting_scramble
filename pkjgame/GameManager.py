@@ -48,4 +48,3 @@ class GameManager:
         def __init__(self, msg=''):
             print('Game Ended' if msg == '' else msg)
             super().__init__(msg)
-        
