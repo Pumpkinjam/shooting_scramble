@@ -34,4 +34,13 @@ class GameObject(metaclass=ABCMeta):
     @abstractmethod
     def move_to(self, x, y):
         self.center.move_to(x, y)
-        
+    
+    def get_range(self) -> tuple:   # (Pos1, Pos2)
+        return (Pos(self.x - self.width/2, self.y - self.height/2), Pos(self.x + self.width/2, self.y + self.height/2))
+    
+    def is_in_range(self, ran: tuple):
+        lt = ran[0]; rb = ran[1]
+        return (lt.x < self.x < rb.x and lt.y < self.y < rb.y)
+
+    def check_collision(self, other: GameObject):
+        return self.is_in_range(other.get_range())
