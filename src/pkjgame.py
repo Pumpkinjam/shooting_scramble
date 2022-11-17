@@ -283,7 +283,7 @@ class DisplayManager:
         # fields initialization
         # these are updated by refreshing
         self.bg = Image.new("RGBA", (self.width, self.height))
-        self.paper = self.bg.copy()
+        self.paper = copy.deepcopy(self.bg)
         #self.pen = ImageDraw.Draw(self.paper)
 
         self.display()
@@ -313,7 +313,6 @@ class DisplayManager:
         ImageDraw.Draw(self.bg).rectangle((0, 0, self.width, self.height), fill=fill)    # bg becomes new background
         self.refresh(self.objects)  # update!
     
-    # if img not None, set instance(DisplayManager)'s paper to img
     def display(self, room=None):
         if room is not None: self.paper = room.reset_image()
         self.disp.image(self.paper)

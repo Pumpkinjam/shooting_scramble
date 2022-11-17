@@ -4,6 +4,7 @@ from digitalio import DigitalInOut
 from adafruit_rgb_display import st7789
 from PIL import Image, ImageDraw, ImageFont
 import board
+import copy
 
 class DisplayManager:
     
@@ -42,7 +43,7 @@ class DisplayManager:
         # fields initialization
         # these are updated by refreshing
         self.bg = Image.new("RGBA", (self.width, self.height))
-        self.paper = self.bg.copy()
+        self.paper = copy.deepcopy(self.bg)
         #self.pen = ImageDraw.Draw(self.paper)
 
         self.display()
