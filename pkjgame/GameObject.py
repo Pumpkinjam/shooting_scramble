@@ -20,20 +20,25 @@ class GameObject(metaclass=ABCMeta):
         if image is not None:
             self.img = image
         else:
-            self.img = Image.new("RGBA", (x,y))
+            self.img = Image.new("RGBA", (width, height))
         
         self.id = id
         self.state = None
         self.center = Pos(x, y)
+        self.x = x
+        self.y = y
         self.outline = "#FFFFFF"
 
-    @abstractmethod
+
     def move(self, x, y):
         self.center.move(x, y)
+        self.x = self.center.x
+        self.y = self.center.y
         
-    @abstractmethod
     def move_to(self, x, y):
         self.center.move_to(x, y)
+        self.x = self.center.x
+        self.y = self.center.y
     
     def get_range(self) -> tuple:   # (Pos1, Pos2)
         return (Pos(self.x - self.width/2, self.y - self.height/2), Pos(self.x + self.width/2, self.y + self.height/2))

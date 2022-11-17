@@ -13,9 +13,3 @@ class Enemy(Character):
         import random as r
         if r.random() < self.drop_rate:
             pass # generate gold, item, or else
-
-    def move(self, x, y):
-        self.center.move(x, y)
-        
-    def move_to(self, x, y):
-        self.center.move_to(x, y)

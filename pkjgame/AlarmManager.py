@@ -9,9 +9,10 @@ class Alarm:
 
     int id;
     '''
-    def __init__(self, id, clock):
+    def __init__(self, id, set_time):
         self.id = id
-        self.clock = clock
+        self.set_time = set_time   # fixed
+        self.clock = set_time      # reduces
         self.start_time = time.time()
         self.timing = self.start_time + self.clock
     
@@ -35,20 +36,23 @@ class Alarm:
         
     
     # reset the start_time and clock (with new_clock)
-    def setClock(self, new_clock) -> None:
+    def setClock(self, new_time) -> None:
         self.start_time = time.time()
-        self.clock = new_clock
+        self.set_time = new_time
+        self.clock = new_time
         self.timing = self.start_time + self.clock
     
     # if alarm is done, set Alarm with new_clock and return True
     # else, return False
-    def resetAlarm(self, new_clock=None) -> bool:
+    def resetAlarm(self, new_time=None) -> bool:
         if not self.isDone(): return False;
 
         self.started_time = time.time()
-        if new_clock is not None: 
-          self.clock = new_clock
-
+        if new_time is not None: 
+            self.set_time = new_time
+            self.clock = new_time
+        else:
+            self.clock = self.set_time
         return True
 
 

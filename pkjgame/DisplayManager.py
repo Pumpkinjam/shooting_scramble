@@ -45,7 +45,7 @@ class DisplayManager:
         self.paper = self.bg.copy()
           #self.pen = ImageDraw.Draw(self.paper)
 
-        self.refresh()
+        #self.refresh()
         
     """
     def refresh(self, obj_list=None):

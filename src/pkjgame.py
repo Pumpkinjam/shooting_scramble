@@ -1,11 +1,12 @@
 import time
+import random
 from abc import *
 import numpy as np
 from math import sqrt
 import csv
 
 from PIL import Image, ImageDraw, ImageFont
-
+import copy
 import board
 from digitalio import DigitalInOut, Direction
 from adafruit_rgb_display import st7789
@@ -30,10 +31,14 @@ class GameManager:
 
     def start(self):
         self.setup()
+        self.manage()
+        '''
         try:
             self.manage()
         except:
+            print('what')
             return
+            '''
 
     def stop(self):
         raise GameManager.GameEndException('Game Stopped.')
@@ -45,24 +50,33 @@ class GameManager:
         self.user = UserInfo()
         
         self.rm.create_room(self.screen_width, self.screen_height)
-        player = self.rm.current_room.create_object(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
+        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
-        self.dm.display(self.rm.current_room)
-        time.sleep(4)
+        self.disp()
 
     def manage(self):
+        i=0
         while True:
+            i+=1
+            self.player.move(1 if i//50%2==0 else -1, 0)
+            #self.create(Player, (self.player.x, self.player.y, 32, 32, DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100))))
             if self.fps_alarm.resetAlarm():
-                self.dm.display(self.rm.current_room)
+                self.disp()
+                print(self.player.x, self.player.y)
+                print(self.fps_alarm.clock)
+                print(f'current number of object : {len(self.rm.current_room.objects)}')
 
-    
+
     def create(self, cls: type, args: tuple):
-        self.rm.objects[self.object_id] = cls(self.object_id, *args)
+        return self.rm.current_room.create_object(cls, args)
     
-    def destroy(self, id):
+    def destroy(self, id) -> None:
         del self.objects[id]
+
+    def disp(self) -> None:
+        self.dm.display(self.rm.current_room)
 
 
     class GameEndException(Exception):
@@ -133,46 +147,62 @@ class Alarm:
 
     int id;
     '''
-    def __init__(self, id, clock):
+    def __init__(self, id, set_time):
         self.id = id
-        self.clock = clock
+        self.set_time = set_time   # fixed
+        self.clock = set_time      # reduces
+        self.unactivated = False
         self.start_time = time.time()
         self.timing = self.start_time + self.clock
     
     # return if the valid alarm was done
     def isDone(self) -> bool:
-        if self.clock == -1: return False
+        #print(self.unactivated)
+        if self.unactivated: return False
+        self.clock = self.timing - time.time()
 
-        if (time.time() > self.timing):
-            self.clock = -1
+        if (self.clock <= 0):
+            #print('Alarm Done!')
+            self.unactivated = True
             return True
         else:
+            #print('wait...')
             return False
     
 
     def getPassedTime(self) -> float:
-        if self.clock == -1.: return -1.
+        if self.unactivated: return -1.
 
         tmp = self.timing - time.time()
         if tmp < 0: return -1.
         else: return tmp
         
-    
+    '''
     # reset the start_time and clock (with new_clock)
-    def setClock(self, new_clock) -> None:
+    def setClock(self, new_time) -> None:
+        self.unactivated = False
         self.start_time = time.time()
-        self.clock = new_clock
+        self.set_time = new_time
+        self.clock = new_time
         self.timing = self.start_time + self.clock
-    
+    '''
+
     # if alarm is done, set Alarm with new_clock and return True
     # else, return False
-    def resetAlarm(self, new_clock=None) -> bool:
-        if not self.isDone(): return False;
+    def resetAlarm(self, new_time=None) -> bool:
+        #print(f'Alarm clock check : {self.clock}')
+        if not self.isDone(): return False
 
         self.started_time = time.time()
-        if new_clock is not None: 
-          self.clock = new_clock
-
+        if new_time is not None:
+            self.set_time = new_time
+            self.clock = new_time
+            self.timing = self.started_time + self.new_time
+        else:
+            self.clock = self.set_time
+            self.timing = self.started_time + self.set_time
+        
+        self.unactivated = False
         return True
 
 
@@ -280,16 +310,16 @@ class DisplayManager:
     """
     
     def set_background(self, fill: tuple):
-        ImageDraw.Draw(self.bg).rectangle((0, 0, self.width, self.height), fill)    # bg becomes new background
+        ImageDraw.Draw(self.bg).rectangle((0, 0, self.width, self.height), fill=fill)    # bg becomes new background
         self.refresh(self.objects)  # update!
     
     # if img not None, set instance(DisplayManager)'s paper to img
     def display(self, room=None):
-        if room is not None: self.paper = room.get_image()
+        if room is not None: self.paper = room.reset_image()
         self.disp.image(self.paper)
 
     def paste_something(self, img: Image, position: tuple) -> None:
-        self.paper.paste(img, position)
+        self.paper.paste(img, position, img)
         self.display()
     
     @staticmethod
@@ -304,7 +334,7 @@ class DisplayManager:
                 print()
                 raise Exception('DisplayManager.image_build() : given objects must be GameObject')
             else:
-                paper.paste(obj.img, obj.center.to_tuple())
+                paper.paste(obj.img, obj.center.to_tuple(), obj.img)
         
         return paper
 
@@ -336,12 +366,13 @@ class Room:
             ImageDraw.Draw(self.background).rectangle((0, 0, room_width, room_height), (255,255,255,100))
         else:
             self.background = bg
+        self.image = copy.deepcopy(self.background)
 
         self.reset_image()
 
-    def reset_image(self) -> None:
+    def reset_image(self):
         self.image = DisplayManager.image_build(self.width, self.height, self.background, self.objects)
-        
+        return self.image
 
     def create_object(self, cls: type, args: tuple):
         self.object_id += 1
@@ -529,20 +560,25 @@ class GameObject(metaclass=ABCMeta):
         if image is not None:
             self.img = image
         else:
-            self.img = Image.new("RGBA", (x,y))
+            self.img = Image.new("RGBA", (width, height))
         
         self.id = id
         self.state = None
         self.center = Pos(x, y)
+        self.x = x
+        self.y = y
         self.outline = "#FFFFFF"
 
-    @abstractmethod
+
     def move(self, x, y):
         self.center.move(x, y)
+        self.x = self.center.x
+        self.y = self.center.y
         
-    @abstractmethod
     def move_to(self, x, y):
         self.center.move_to(x, y)
+        self.x = self.center.x
+        self.y = self.center.y
     
     def get_range(self) -> tuple:   # (Pos1, Pos2)
         return (Pos(self.x - self.width/2, self.y - self.height/2), Pos(self.x + self.width/2, self.y + self.height/2))
@@ -568,12 +604,6 @@ class Character(GameObject):
     def __init__(self, id, x, y, width, height, image=None):
         super().__init__(id, x, y, width, height, image)
 
-    def move(self, x, y):
-        self.center.move(x, y)
-        
-    def move_to(self, x, y):
-        self.center.move_to(x, y)
-
 
 #############################################################################
 #                                                                           #
@@ -594,12 +624,6 @@ class Enemy(Character):
         if r.random() < self.drop_rate:
             pass # generate gold, item, or else
 
-    def move(self, x, y):
-        self.center.move(x, y)
-        
-    def move_to(self, x, y):
-        self.center.move_to(x, y)
-
 
 #############################################################################
 #                                                                           #
@@ -618,13 +642,6 @@ class Player(Character):
         super().__init__(id, x, y, width, height, image)
         #self.state
         #self.hp
-        
-
-    def move(self, x, y):
-        self.center.move(x, y)
-        
-    def move_to(self, x, y):
-        self.center.move_to(x, y)
 
 
 #############################################################################

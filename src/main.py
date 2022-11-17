@@ -1,4 +1,5 @@
 from pkjgame import *
+
 '''
 from PIL import Image, ImageDraw, ImageFont
 import time
@@ -9,8 +10,7 @@ from colorsys import hsv_to_rgb
 '''
 
 def main():
-    
-    gm = GameManager(30, 240, 240)
+    gm = GameManager(1, 240, 240)
     gm.start()
     
     

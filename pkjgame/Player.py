@@ -11,9 +11,3 @@ class Player(Character):
         #self.state
         #self.hp
         
-
-    def move(self, x, y):
-        self.center.move(x, y)
-        
-    def move_to(self, x, y):
-        self.center.move_to(x, y)
