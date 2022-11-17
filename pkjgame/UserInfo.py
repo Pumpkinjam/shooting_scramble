@@ -1,7 +1,7 @@
 import csv
 
 class UserInfo:
-
+    
     filename1 = 'playerInfo.sav'
     filename2 = 'playerDat.sav'
 
@@ -71,4 +71,3 @@ class UserInfo:
         s = tmp
 
         return f'{d//SEC_IN_DAY}days, {h//SEC_IN_HOUR}hours {m//SEC_IN_MIN}minutes {s}seconds'
-        

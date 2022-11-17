@@ -10,10 +10,14 @@ class GameManager:
 
     def start(self):
         self.setup()
+        self.manage()
+        '''
         try:
             self.manage()
         except:
+            print('what')
             return
+            '''
 
     def stop(self):
         raise GameManager.GameEndException('Game Stopped.')
@@ -32,17 +36,20 @@ class GameManager:
         self.disp()
 
     def manage(self):
+        i=0
         while True:
-            self.player.move(random.randint(-1,1), random.randint(-1,1))
+            i+=1
+            self.player.move(1 if i//50%2==0 else -1, 0)
+            #self.create(Player, (self.player.x, self.player.y, 32, 32, DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100))))
             if self.fps_alarm.resetAlarm():
                 self.disp()
                 print(self.player.x, self.player.y)
-                self.dm.display(self.rm.current_room)
                 print(self.fps_alarm.clock)
+                print(f'current number of object : {len(self.rm.current_room.objects)}')
 
 
     def create(self, cls: type, args: tuple):
-        return self.rm.current_room.create_object(cls, *args)
+        return self.rm.current_room.create_object(cls, args)
     
     def destroy(self, id) -> None:
         del self.objects[id]

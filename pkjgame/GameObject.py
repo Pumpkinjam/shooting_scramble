@@ -47,5 +47,5 @@ class GameObject(metaclass=ABCMeta):
         lt = ran[0]; rb = ran[1]
         return (lt.x < self.x < rb.x and lt.y < self.y < rb.y)
 
-    def check_collision(self, other: GameObject):
+    def check_collision(self, other):
         return self.is_in_range(other.get_range())

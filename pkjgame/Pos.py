@@ -34,7 +34,7 @@ class Pos:
         self.y += y
     
     def distance_to(self, other) -> float:
-        return sqrt(self.x * self.x + self.y * self.y)
+        return sqrt((self.x - other.x) ** 2  + (self.y - other.y) ** 2)
     
     def to_tuple(self) -> tuple:
         return (self.x, self.y)

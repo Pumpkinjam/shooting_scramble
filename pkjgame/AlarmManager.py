@@ -13,46 +13,58 @@ class Alarm:
         self.id = id
         self.set_time = set_time   # fixed
         self.clock = set_time      # reduces
+        self.unactivated = False
         self.start_time = time.time()
         self.timing = self.start_time + self.clock
     
     # return if the valid alarm was done
     def isDone(self) -> bool:
-        if self.clock == -1: return False
+        #print(self.unactivated)
+        if self.unactivated: return False
+        self.clock = self.timing - time.time()
 
-        if (time.time() > self.timing):
-            self.clock = -1
+        if (self.clock <= 0):
+            #print('Alarm Done!')
+            self.unactivated = True
             return True
         else:
+            #print('wait...')
             return False
     
 
     def getPassedTime(self) -> float:
-        if self.clock == -1.: return -1.
+        if self.unactivated: return -1.
 
         tmp = self.timing - time.time()
         if tmp < 0: return -1.
         else: return tmp
         
-    
+    '''
     # reset the start_time and clock (with new_clock)
     def setClock(self, new_time) -> None:
+        self.unactivated = False
         self.start_time = time.time()
         self.set_time = new_time
         self.clock = new_time
         self.timing = self.start_time + self.clock
-    
+    '''
+
     # if alarm is done, set Alarm with new_clock and return True
     # else, return False
     def resetAlarm(self, new_time=None) -> bool:
-        if not self.isDone(): return False;
+        #print(f'Alarm clock check : {self.clock}')
+        if not self.isDone(): return False
 
         self.started_time = time.time()
-        if new_time is not None: 
+        if new_time is not None:
             self.set_time = new_time
             self.clock = new_time
+            self.timing = self.started_time + self.new_time
         else:
             self.clock = self.set_time
+            self.timing = self.started_time + self.set_time
+        
+        self.unactivated = False
         return True
 
 

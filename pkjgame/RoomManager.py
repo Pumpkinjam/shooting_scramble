@@ -1,9 +1,11 @@
 from PIL import Image, ImageDraw, ImageFont
+import copy
 
 class Room:
-
+    
     def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
         self.id = id
+        self.object_id = 0
         self.width = room_width
         self.height = room_height
         self.objects = objs        # keys: id (int), values: obj (GameObject)
@@ -13,18 +15,23 @@ class Room:
             ImageDraw.Draw(self.background).rectangle((0, 0, room_width, room_height), (255,255,255,100))
         else:
             self.background = bg
+        self.image = copy.deepcopy(self.background)
 
         self.reset_image()
 
-    def reset_image(self) -> None:
+    def reset_image(self):
         self.image = DisplayManager.image_build(self.width, self.height, self.background, self.objects)
-        
-    def deep_copy(self):
-        return Room(self.id, self.screself.objects.copy())
+        return self.image
 
-    def add_object(self, obj):
-        self.objects[obj.id] = obj
+    def create_object(self, cls: type, args: tuple):
+        self.object_id += 1
+        obj = cls(self.object_id, *args)
+
+        self.objects[self.object_id] = obj
+        
+        print(f'{cls} created.')
         self.reset_image()
+        return obj
     
     def del_object(self, obj):
         del self.objects[obj.id]
@@ -39,18 +46,19 @@ class Room:
     
 class RoomManager:
 
-    def __init__(self):
+    def __init__(self, first_room_width, first_room_height):
         self.current_id = 0
         self.number_rooms = 0
         self.rooms = dict()
 
-        self.first_room = None
-        self.current_room = None
+        r = self.create_room(first_room_width, first_room_height)
+        self.first_room = r
+        self.current_room = r
 
     def create_room(self, room_width, room_height, objs=dict()):
         self.number_rooms += 1
         self.current_id += 1
-        r = Room(self.current_id, room_width, room_height, objs)
+        r = Room(self.current_id, room_width, room_height, objs=objs)
 
         if self.number_rooms == 1:
             self.first_room = r
@@ -96,4 +104,3 @@ class RoomManager:
         def __init__(self, msg=''):
             print('No more rooms in RoomManager.' if msg == '' else msg)
             super().__init__(msg)
-        
