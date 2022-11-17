@@ -50,7 +50,7 @@ class GameManager:
         self.user = UserInfo()
         
         self.rm.create_room(self.screen_width, self.screen_height)
-        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
+        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -326,7 +326,7 @@ class DisplayManager:
         if background is None:
             background = Image.new("RGBA", (img_width, img_height))
         
-        paper = background
+        paper = copy.deepcopy(background)
         
         for obj in obj_dict.values():
             if not isinstance(obj, GameObject):
