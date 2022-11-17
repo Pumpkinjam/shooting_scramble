@@ -1,9 +1,3 @@
-from pkjgame import *
-
-from digitalio import DigitalInOut, Direction
-from adafruit_rgb_display import st7789
-import board
-
 class Controller:
     def __init__(self):
 
@@ -39,7 +33,7 @@ class Controller:
 
         '''
         self.button_C = DigitalInOut(board.D4)
-        self.button_C.direction = Direction.INPUT
+        self.button_C.SimpleDirection = SimpleDirection.INPUT
         '''
         print('Complete')
 
@@ -49,7 +43,7 @@ class Controller:
     def get_input(self) -> dict:
         res = dict()
         for key, value in self.input_dict.items():
-            res[key] = not value
+            res[key] = not value.value
         
         return res
     
@@ -57,7 +51,7 @@ class Controller:
     def get_valid_input(self) -> list:
         res = list()
         for key, value in self.input_dict.items():
-            if not value: res.append(key)
+            if not value.value: res.append(key)
         
         return res
     

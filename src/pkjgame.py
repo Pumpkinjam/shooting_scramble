@@ -63,13 +63,14 @@ class GameManager:
         self.disp()
 
     def manage(self):
-        
+        i=0
         while True:
+            i += 1
             self.rm.current_room.objects_act((self.joystick,))
             if self.fps_alarm.resetAlarm():
-                self.print_debug()
+                #self.print_debug()
                 self.disp()
-                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100)))
+                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (255*(i%2), 255*((i+1)%2), 0, 100)))
 
 
     def create(self, cls: type, args: tuple):
@@ -337,7 +338,7 @@ class DisplayManager:
         return paper
 
     @staticmethod
-    def get_rectangle_image(width: int, height: int, color: tuple):
+    def get_rectangle_image(width: int, height: int, color: tuple = (0,0,0)):
         rec = Image.new('RGBA', (width, height))
         ImageDraw.Draw(rec).rectangle((0, 0, 32, 32), fill=color)
         return rec
@@ -370,7 +371,7 @@ class Room:
 
     # make objects in room do something specific actions
     def objects_act(self, input_devices: tuple):
-        for obj in self.objects.values():
+        for obj in list(self.objects.values()):
             obj.act(input_devices)
         
     def reset_image(self):
@@ -574,6 +575,9 @@ class GameObject(metaclass=ABCMeta):
         self.y = y
         self.outline = "#FFFFFF"
 
+    def __del__(self):
+        print(f'{self} destroyed.')
+
     @abstractmethod
     def act(self, input_devices: tuple):
         pass
@@ -607,6 +611,11 @@ class GameObject(metaclass=ABCMeta):
     def is_in_range(self, ran: tuple):
         lt = ran[0]; rb = ran[1]
         return (lt.x < self.x < rb.x and lt.y < self.y < rb.y)
+
+    def is_in_room(self):
+        return self.is_in_range(
+            (Pos(0,0), Pos(self.room.width, self.room.height))
+            )
 
     def check_collision(self, other):
         return self.is_in_range(other.get_range())
@@ -684,7 +693,9 @@ class Player(Character):
         pass
 
     def launch_projectile(self):
-        self.room.create_object(Bullet, )
+        self.room.create_object(Bullet, (*(self.center.to_tuple()), 4, 4, DisplayManager.get_rectangle_image(4, 4), 10, self.heading))
+
+
     '''
     A : weapon -> attack, shield -> defense
     B : pause  (not be processed here)
@@ -696,15 +707,19 @@ class Player(Character):
     def command(self, input_sig: tuple):
         for cmd in input_sig:
             if cmd == 'A':
-                pass
+                self.attack()
             elif cmd == 'U':
-                pass
+                self.move(0, -1)
+                self.heading = SimpleDirection.UP
             elif cmd == 'L':
-                pass
+                self.move(-1, 0)
+                self.heading = SimpleDirection.LEFT
             elif cmd == 'D':
                 self.move(0, 1)
+                self.heading = SimpleDirection.DOWN
                 pass
             elif cmd == 'R':
+                self.heading = SimpleDirection.RIGHT
                 pass
         
 
@@ -722,13 +737,16 @@ class Bullet(GameObject):
         self.speed = speed
         self.dir = dir
     
+    '''
     def __del__(self):
         pass # add some effects?
-
+'''
     def destroy(self):
-        self.room.del_object(self.id)
+        self.room.del_object(self)
     
     def act(self, input_devices:tuple):
+        if (not self.is_in_room()):
+            self.destroy()
         self.move_by_dir(self.speed, self.dir)
 
 

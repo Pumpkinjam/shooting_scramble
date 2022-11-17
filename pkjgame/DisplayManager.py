@@ -1,11 +1,3 @@
-from pkjgame import *
-
-from digitalio import DigitalInOut
-from adafruit_rgb_display import st7789
-from PIL import Image, ImageDraw, ImageFont
-import board
-import copy
-
 class DisplayManager:
     
     bg_length = 240
@@ -78,7 +70,7 @@ class DisplayManager:
         return paper
 
     @staticmethod
-    def get_rectangle_image(width: int, height: int, color: tuple):
+    def get_rectangle_image(width: int, height: int, color: tuple = (0,0,0)):
         rec = Image.new('RGBA', (width, height))
         ImageDraw.Draw(rec).rectangle((0, 0, 32, 32), fill=color)
         return rec

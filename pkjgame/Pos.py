@@ -1,7 +1,3 @@
-from pkjgame import *
-
-from math import sqrt
-
 class Pos:
     '''
     float x, y;

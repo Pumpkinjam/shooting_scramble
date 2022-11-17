@@ -1,7 +1,3 @@
-from pkjgame import *
-
-import random as r
-
 class Enemy(Character):
     
     def __init__(self, room, id, x, y, width, height, image=None):

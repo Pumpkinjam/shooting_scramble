@@ -1,6 +1,3 @@
-from PIL import Image, ImageDraw, ImageFont
-import copy
-
 class Room:
     
     def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
@@ -21,7 +18,7 @@ class Room:
 
     # make objects in room do something specific actions
     def objects_act(self, input_devices: tuple):
-        for obj in self.objects.values():
+        for obj in list(self.objects.values()):
             obj.act(input_devices)
         
     def reset_image(self):

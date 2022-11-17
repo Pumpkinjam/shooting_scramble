@@ -40,13 +40,14 @@ class GameManager:
         self.disp()
 
     def manage(self):
-        
+        i=0
         while True:
-            self.rm.current_room.objects_act()
+            i += 1
+            self.rm.current_room.objects_act((self.joystick,))
             if self.fps_alarm.resetAlarm():
-                self.print_debug()
+                #self.print_debug()
                 self.disp()
-                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100)))
+                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (255*(i%2), 255*((i+1)%2), 0, 100)))
 
 
     def create(self, cls: type, args: tuple):

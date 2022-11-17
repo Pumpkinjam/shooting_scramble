@@ -1,9 +1,3 @@
-from pkjgame import *
-
-from abc import *
-from PIL import Image
-import numpy as np
-
 # All Objects in game (Character, Item, Bullets...) must be extended by this class
 # This class is abstract (Interface-like)
 class GameObject(metaclass=ABCMeta):
@@ -30,6 +24,9 @@ class GameObject(metaclass=ABCMeta):
         self.y = y
         self.outline = "#FFFFFF"
 
+    def __del__(self):
+        print(f'{self} destroyed.')
+
     @abstractmethod
     def act(self, input_devices: tuple):
         pass
@@ -41,16 +38,16 @@ class GameObject(metaclass=ABCMeta):
         self.y = self.center.y
 
     def move_by_dir(self, speed, dir):
-        if dir == Direction.RIGHT:
+        if dir == SimpleDirection.RIGHT:
             self.move(speed, 0)
-        elif dir == Direction.LEFT:
+        elif dir == SimpleDirection.LEFT:
             self.move(-speed, 0)
-        elif dir == Direction.UP:
+        elif dir == SimpleDirection.UP:
             self.move(0, -speed)
-        elif dir == Direction.DOWN:
+        elif dir == SimpleDirection.DOWN:
             self.move(0, speed)
         else:
-            raise Exception('Unknown direction')
+            raise Exception('Unknown SimpleDirection')
         
     def move_to(self, x, y):
         self.center.move_to(x, y)
@@ -63,6 +60,11 @@ class GameObject(metaclass=ABCMeta):
     def is_in_range(self, ran: tuple):
         lt = ran[0]; rb = ran[1]
         return (lt.x < self.x < rb.x and lt.y < self.y < rb.y)
+
+    def is_in_room(self):
+        return self.is_in_range(
+            (Pos(0,0), Pos(self.room.width, self.room.height))
+            )
 
     def check_collision(self, other):
         return self.is_in_range(other.get_range())

@@ -1,6 +1,3 @@
-from pkjgame import *
-import time
-
 class Alarm:
     '''
     float clock; // once Alarm have been done, clock becomes -1
