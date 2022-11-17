@@ -1,3 +1,5 @@
+import gc
+
 class GameManager:
     
     def __init__(self, fps, screen_width, screen_height):
@@ -26,26 +28,25 @@ class GameManager:
         self.am = AlarmManager()
         self.dm = DisplayManager()
         self.rm = RoomManager(self.screen_width, self.screen_height)
+        self.joystick = Controller()
         self.user = UserInfo()
         
+        
         self.rm.create_room(self.screen_width, self.screen_height)
-        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,100))))
+        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
         self.disp()
 
     def manage(self):
-        i=0
+        
         while True:
-            i+=1
-            self.player.move(1 if i//50%2==0 else -1, 0)
-            #self.create(Player, (self.player.x, self.player.y, 32, 32, DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100))))
+            self.rm.current_room.objects_act()
             if self.fps_alarm.resetAlarm():
+                self.print_debug()
                 self.disp()
-                print(self.player.x, self.player.y)
-                print(self.fps_alarm.clock)
-                print(f'current number of object : {len(self.rm.current_room.objects)}')
+                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100)))
 
 
     def create(self, cls: type, args: tuple):
@@ -57,6 +58,9 @@ class GameManager:
     def disp(self) -> None:
         self.dm.display(self.rm.current_room)
 
+    def print_debug(self):
+        print(f'current input : {self.joystick.get_input()}')
+        print(f'current number of object : {len(self.rm.current_room.objects)}')
 
     class GameEndException(Exception):
         def __init__(self, msg=''):

@@ -1,6 +1,8 @@
 import time
 import random
 
+import gc
+
 from abc import *
 from enum import Enum
 import numpy as np
@@ -187,7 +189,7 @@ class Alarm:
         if tmp < 0: return -1.
         else: return tmp
         
-    '''
+    
     # reset the start_time and clock (with new_clock)
     def setClock(self, new_time) -> None:
         self.unactivated = False
@@ -195,7 +197,7 @@ class Alarm:
         self.set_time = new_time
         self.clock = new_time
         self.timing = self.start_time + self.clock
-    '''
+    
 
     # if alarm is done, set Alarm with new_clock and return True
     # else, return False
@@ -359,6 +361,11 @@ class Room:
 
         self.reset_image()
 
+    # make objects in room do something specific actions
+    def objects_act(self):
+        for obj in self.objects.values():
+            obj.act()
+        
     def reset_image(self):
         self.image = DisplayManager.image_build(self.width, self.height, self.background, self.objects)
         return self.image
@@ -560,7 +567,8 @@ class GameObject(metaclass=ABCMeta):
         self.outline = "#FFFFFF"
 
     @abstractmethod
-    #todo
+    def act(self):
+        pass
 
     def move(self, x, y):
         self.center.move(x, y)
@@ -627,7 +635,7 @@ class Enemy(Character):
 #                                                                           #
 #############################################################################
 
-from enum import Enum
+
 class Player(Character):
 
     weapon_list = []    # to be implemented (here, or maybe in other class)
@@ -679,7 +687,13 @@ class Player(Character):
 
 
 class Bullet(GameObject):
+    def __init__(self, room, id, x, y, width, height, image=None, dir=Direction.RIGHT, speed=1):
+        super().__init__(room, id, x, y, width, height, image)
+        self.dir = dir
+        self.speed = speed
     
+    def destroy(self):
+        self.room.del_object(self.id)
 
 
 #############################################################################

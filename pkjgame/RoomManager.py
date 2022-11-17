@@ -19,13 +19,19 @@ class Room:
 
         self.reset_image()
 
+    # make objects in room do something specific actions
+    def objects_act(self, input_devices: tuple):
+        for obj in self.objects.values():
+            obj.act(input_devices)
+        
     def reset_image(self):
         self.image = DisplayManager.image_build(self.width, self.height, self.background, self.objects)
         return self.image
 
+    # makes object with room, id
     def create_object(self, cls: type, args: tuple):
         self.object_id += 1
-        obj = cls(self.object_id, *args)
+        obj = cls(self, self.object_id, *args)
 
         self.objects[self.object_id] = obj
         

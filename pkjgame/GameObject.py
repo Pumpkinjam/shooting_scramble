@@ -16,12 +16,13 @@ class GameObject(metaclass=ABCMeta):
     '''
 
     @abstractmethod
-    def __init__(self, id, x, y, width, height, image=None):
+    def __init__(self, room, id, x, y, width, height, image=None):
         if image is not None:
             self.img = image
         else:
             self.img = Image.new("RGBA", (width, height))
         
+        self.room = room
         self.id = id
         self.state = None
         self.center = Pos(x, y)
@@ -29,11 +30,27 @@ class GameObject(metaclass=ABCMeta):
         self.y = y
         self.outline = "#FFFFFF"
 
+    @abstractmethod
+    def act(self, input_devices: tuple):
+        pass
 
-    def move(self, x, y):
+    # if dir is not None, arguments x and y will be ignored
+    def move(self, x=0, y=0):
         self.center.move(x, y)
         self.x = self.center.x
         self.y = self.center.y
+
+    def move_by_dir(self, speed, dir):
+        if dir == Direction.RIGHT:
+            self.move(speed, 0)
+        elif dir == Direction.LEFT:
+            self.move(-speed, 0)
+        elif dir == Direction.UP:
+            self.move(0, -speed)
+        elif dir == Direction.DOWN:
+            self.move(0, speed)
+        else:
+            raise Exception('Unknown direction')
         
     def move_to(self, x, y):
         self.center.move_to(x, y)

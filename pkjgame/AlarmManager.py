@@ -38,8 +38,8 @@ class Alarm:
         tmp = self.timing - time.time()
         if tmp < 0: return -1.
         else: return tmp
-        
-    '''
+    
+
     # reset the start_time and clock (with new_clock)
     def setClock(self, new_time) -> None:
         self.unactivated = False
@@ -47,7 +47,7 @@ class Alarm:
         self.set_time = new_time
         self.clock = new_time
         self.timing = self.start_time + self.clock
-    '''
+    
 
     # if alarm is done, set Alarm with new_clock and return True
     # else, return False

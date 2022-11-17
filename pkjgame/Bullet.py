@@ -1,5 +1,19 @@
 from pkjgame import *
-import numpy as np
+
+class Bullet(GameObject):
+    def __init__(self, room, id, x, y, width, height, image=None, speed=1, dir=Direction.RIGHT):
+        super().__init__(room, id, x, y, width, height, image)
+        self.speed = speed
+        self.dir = dir
+    
+    def __del__(self):
+        pass # add some effects?
+
+    def destroy(self):
+        self.room.del_object(self.id)
+    
+    def act(self, input_devices:tuple):
+        self.move_by_dir(self.speed, self.dir)
 
 '''
 class Bullet:
