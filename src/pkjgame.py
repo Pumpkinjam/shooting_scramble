@@ -4,7 +4,7 @@ import random
 import gc
 
 from abc import *
-from enum import Enum
+from enum import Enum, auto
 import numpy as np
 from math import sqrt
 import csv
@@ -65,7 +65,7 @@ class GameManager:
     def manage(self):
         
         while True:
-            self.rm.current_room.objects_act()
+            self.rm.current_room.objects_act((self.joystick,))
             if self.fps_alarm.resetAlarm():
                 self.print_debug()
                 self.disp()
@@ -93,12 +93,12 @@ class GameManager:
 
 #############################################################################
 #                                                                           #
-# Direction.py                                                              #
+# SimpleDirection.py                                                        #
 #                                                                           #
 #############################################################################
 
 
-class Direction(Enum):
+class SimpleDirection(Enum):
     RIGHT = auto()
     UP = auto()
     LEFT = auto()
@@ -585,16 +585,16 @@ class GameObject(metaclass=ABCMeta):
         self.y = self.center.y
 
     def move_by_dir(self, speed, dir):
-        if dir == Direction.RIGHT:
+        if dir == SimpleDirection.RIGHT:
             self.move(speed, 0)
-        elif dir == Direction.LEFT:
+        elif dir == SimpleDirection.LEFT:
             self.move(-speed, 0)
-        elif dir == Direction.UP:
+        elif dir == SimpleDirection.UP:
             self.move(0, -speed)
-        elif dir == Direction.DOWN:
+        elif dir == SimpleDirection.DOWN:
             self.move(0, speed)
         else:
-            raise Exception('Unknown direction')
+            raise Exception('Unknown SimpleDirection')
         
     def move_to(self, x, y):
         self.center.move_to(x, y)
@@ -667,7 +667,7 @@ class Player(Character):
     
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
-        self.heading = Direction.RIGHT
+        self.heading = SimpleDirection.RIGHT
         #self.state
         #self.hp
 
@@ -717,7 +717,7 @@ class Player(Character):
 
 
 class Bullet(GameObject):
-    def __init__(self, room, id, x, y, width, height, image=None, speed=1, dir=Direction.RIGHT):
+    def __init__(self, room, id, x, y, width, height, image=None, speed=1, dir=SimpleDirection.RIGHT):
         super().__init__(room, id, x, y, width, height, image)
         self.speed = speed
         self.dir = dir
@@ -774,7 +774,7 @@ class Controller:
 
         '''
         self.button_C = DigitalInOut(board.D4)
-        self.button_C.direction = Direction.INPUT
+        self.button_C.SimpleDirection = SimpleDirection.INPUT
         '''
         print('Complete')
 
