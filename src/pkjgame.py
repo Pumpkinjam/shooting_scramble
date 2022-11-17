@@ -56,7 +56,7 @@ class GameManager:
         
         
         self.rm.create_room(self.screen_width, self.screen_height)
-        self.player = self.create(Player, (self.rm.current_room, 60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
+        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -65,7 +65,7 @@ class GameManager:
     def manage(self):
         
         while True:
-            self.player.command(self.joystick.get_valid_input())
+            self.rm.current_room.objects_act()
             if self.fps_alarm.resetAlarm():
                 self.print_debug()
                 self.disp()
@@ -89,6 +89,13 @@ class GameManager:
         def __init__(self, msg=''):
             print('Game Ended' if msg == '' else msg)
             super().__init__(msg)
+
+
+#############################################################################
+#                                                                           #
+# Direction.py                                                              #
+#                                                                           #
+#############################################################################
 
 
 class Direction(Enum):
@@ -188,8 +195,8 @@ class Alarm:
         tmp = self.timing - time.time()
         if tmp < 0: return -1.
         else: return tmp
-        
     
+
     # reset the start_time and clock (with new_clock)
     def setClock(self, new_time) -> None:
         self.unactivated = False
@@ -344,7 +351,7 @@ class DisplayManager:
 
 
 class Room:
-
+    
     def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
         self.id = id
         self.object_id = 0
@@ -362,17 +369,18 @@ class Room:
         self.reset_image()
 
     # make objects in room do something specific actions
-    def objects_act(self):
+    def objects_act(self, input_devices: tuple):
         for obj in self.objects.values():
-            obj.act()
+            obj.act(input_devices)
         
     def reset_image(self):
         self.image = DisplayManager.image_build(self.width, self.height, self.background, self.objects)
         return self.image
 
+    # makes object with room, id
     def create_object(self, cls: type, args: tuple):
         self.object_id += 1
-        obj = cls(self.object_id, *args)
+        obj = cls(self, self.object_id, *args)
 
         self.objects[self.object_id] = obj
         
@@ -567,13 +575,26 @@ class GameObject(metaclass=ABCMeta):
         self.outline = "#FFFFFF"
 
     @abstractmethod
-    def act(self):
+    def act(self, input_devices: tuple):
         pass
 
-    def move(self, x, y):
+    # if dir is not None, arguments x and y will be ignored
+    def move(self, x=0, y=0):
         self.center.move(x, y)
         self.x = self.center.x
         self.y = self.center.y
+
+    def move_by_dir(self, speed, dir):
+        if dir == Direction.RIGHT:
+            self.move(speed, 0)
+        elif dir == Direction.LEFT:
+            self.move(-speed, 0)
+        elif dir == Direction.UP:
+            self.move(0, -speed)
+        elif dir == Direction.DOWN:
+            self.move(0, speed)
+        else:
+            raise Exception('Unknown direction')
         
     def move_to(self, x, y):
         self.center.move_to(x, y)
@@ -604,7 +625,7 @@ class GameObject(metaclass=ABCMeta):
 
 # All Characters (Player, Enemy) must be extended by this class
 class Character(GameObject):
-
+    
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
 
@@ -627,7 +648,9 @@ class Enemy(Character):
         import random as r
         if r.random() < self.drop_rate:
             pass # generate gold, item, or else
-
+    
+    def act(self, input_devices: tuple):
+        pass
 
 #############################################################################
 #                                                                           #
@@ -637,7 +660,7 @@ class Enemy(Character):
 
 
 class Player(Character):
-
+    
     weapon_list = []    # to be implemented (here, or maybe in other class)
     shield_list = []
     state_list = []
@@ -647,6 +670,12 @@ class Player(Character):
         self.heading = Direction.RIGHT
         #self.state
         #self.hp
+
+    def act(self, input_devices):
+        for dev in input_devices:
+            if type(dev) == Controller:
+                self.command(dev.get_valid_input())
+    
 
     # if holding gun-type weapon... launch_projectile()
     # else... something
@@ -677,6 +706,7 @@ class Player(Character):
                 pass
             elif cmd == 'R':
                 pass
+        
 
 
 #############################################################################
@@ -687,13 +717,19 @@ class Player(Character):
 
 
 class Bullet(GameObject):
-    def __init__(self, room, id, x, y, width, height, image=None, dir=Direction.RIGHT, speed=1):
+    def __init__(self, room, id, x, y, width, height, image=None, speed=1, dir=Direction.RIGHT):
         super().__init__(room, id, x, y, width, height, image)
-        self.dir = dir
         self.speed = speed
+        self.dir = dir
     
+    def __del__(self):
+        pass # add some effects?
+
     def destroy(self):
         self.room.del_object(self.id)
+    
+    def act(self, input_devices:tuple):
+        self.move_by_dir(self.speed, self.dir)
 
 
 #############################################################################
