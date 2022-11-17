@@ -49,15 +49,15 @@ class Controller:
     def get_input(self) -> dict:
         res = dict()
         for key, value in self.input_dict.items():
-            res[key] = not value;
+            res[key] = not value
         
         return res
     
     # return dict, which only has input values as True
-    def get_valid_input(self) -> dict:
-        res = dict()
+    def get_valid_input(self) -> list:
+        res = list()
         for key, value in self.input_dict.items():
-            if not value: res[key] = not value;
+            if not value: res.append(key)
         
         return res
     

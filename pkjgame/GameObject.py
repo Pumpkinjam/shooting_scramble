@@ -49,3 +49,6 @@ class GameObject(metaclass=ABCMeta):
 
     def check_collision(self, other):
         return self.is_in_range(other.get_range())
+    
+    def set_img(self, img):
+        self.img = img

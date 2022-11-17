@@ -10,7 +10,7 @@ from colorsys import hsv_to_rgb
 '''
 
 def main():
-    gm = GameManager(1, 240, 240)
+    gm = GameManager(30, 240, 240)
     gm.start()
     
     

@@ -1,6 +1,8 @@
 import time
 import random
+
 from abc import *
+from enum import Enum
 import numpy as np
 from math import sqrt
 import csv
@@ -47,26 +49,25 @@ class GameManager:
         self.am = AlarmManager()
         self.dm = DisplayManager()
         self.rm = RoomManager(self.screen_width, self.screen_height)
+        self.joystick = Controller()
         self.user = UserInfo()
         
+        
         self.rm.create_room(self.screen_width, self.screen_height)
-        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
+        self.player = self.create(Player, (self.rm.current_room, 60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
         self.disp()
 
     def manage(self):
-        i=0
+        
         while True:
-            i+=1
-            self.player.move(1 if i//50%2==0 else -1, 0)
-            #self.create(Player, (self.player.x, self.player.y, 32, 32, DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100))))
+            self.player.command(self.joystick.get_valid_input())
             if self.fps_alarm.resetAlarm():
+                self.print_debug()
                 self.disp()
-                print(self.player.x, self.player.y)
-                print(self.fps_alarm.clock)
-                print(f'current number of object : {len(self.rm.current_room.objects)}')
+                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (random.randint(0,255), random.randint(0,255), random.randint(0,255), 100)))
 
 
     def create(self, cls: type, args: tuple):
@@ -78,12 +79,21 @@ class GameManager:
     def disp(self) -> None:
         self.dm.display(self.rm.current_room)
 
+    def print_debug(self):
+        print(f'current input : {self.joystick.get_input()}')
+        print(f'current number of object : {len(self.rm.current_room.objects)}')
 
     class GameEndException(Exception):
         def __init__(self, msg=''):
             print('Game Ended' if msg == '' else msg)
             super().__init__(msg)
 
+
+class Direction(Enum):
+    RIGHT = auto()
+    UP = auto()
+    LEFT = auto()
+    DOWN = auto()
 
 #############################################################################
 #                                                                           #
@@ -287,27 +297,7 @@ class DisplayManager:
         #self.pen = ImageDraw.Draw(self.paper)
 
         self.display()
-        
-    """
-    def refresh(self, obj_list=None):
-        self.paper = DisplayManager.image_build(self.width, self.height, self.bg, obj_list)
-        '''
-        self.paper = self.bg.copy()
-        
-        if obj_list is not None:
-            self.objects = obj_list
-        
-        for obj in self.objects:
-            if not isinstance(obj, GameObject):
-                print('Something went wrong...')
-                print(type(obj))
-                print(obj)
-            else:
-                self.paper.paste(obj.img, obj.center.to_tuple())
-        
-        '''
-        self.display()
-    """
+
     
     def set_background(self, fill: tuple):
         ImageDraw.Draw(self.bg).rectangle((0, 0, self.width, self.height), fill=fill)    # bg becomes new background
@@ -555,12 +545,13 @@ class GameObject(metaclass=ABCMeta):
     '''
 
     @abstractmethod
-    def __init__(self, id, x, y, width, height, image=None):
+    def __init__(self, room, id, x, y, width, height, image=None):
         if image is not None:
             self.img = image
         else:
             self.img = Image.new("RGBA", (width, height))
         
+        self.room = room
         self.id = id
         self.state = None
         self.center = Pos(x, y)
@@ -568,6 +559,8 @@ class GameObject(metaclass=ABCMeta):
         self.y = y
         self.outline = "#FFFFFF"
 
+    @abstractmethod
+    #todo
 
     def move(self, x, y):
         self.center.move(x, y)
@@ -588,6 +581,10 @@ class GameObject(metaclass=ABCMeta):
 
     def check_collision(self, other):
         return self.is_in_range(other.get_range())
+    
+    def set_img(self, img):
+        self.img = img
+
 
 
 #############################################################################
@@ -600,8 +597,8 @@ class GameObject(metaclass=ABCMeta):
 # All Characters (Player, Enemy) must be extended by this class
 class Character(GameObject):
 
-    def __init__(self, id, x, y, width, height, image=None):
-        super().__init__(id, x, y, width, height, image)
+    def __init__(self, room, id, x, y, width, height, image=None):
+        super().__init__(room, id, x, y, width, height, image)
 
 
 #############################################################################
@@ -613,8 +610,8 @@ class Character(GameObject):
 
 class Enemy(Character):
     
-    def __init__(self, id, x, y, width, height, image=None):
-        super.__init__(id, x, y, width, height, image)
+    def __init__(self, room, id, x, y, width, height, image=None):
+        super.__init__(room, id, x, y, width, height, image)
         self.drop_rate = 0.3    # or else
 
     def __del__(self):
@@ -630,17 +627,59 @@ class Enemy(Character):
 #                                                                           #
 #############################################################################
 
-
+from enum import Enum
 class Player(Character):
 
     weapon_list = []    # to be implemented (here, or maybe in other class)
     shield_list = []
     state_list = []
     
-    def __init__(self, id, x, y, width, height, image=None):
-        super().__init__(id, x, y, width, height, image)
+    def __init__(self, room, id, x, y, width, height, image=None):
+        super().__init__(room, id, x, y, width, height, image)
+        self.heading = Direction.RIGHT
         #self.state
         #self.hp
+
+    # if holding gun-type weapon... launch_projectile()
+    # else... something
+    def attack(self):
+        self.launch_projectile()
+        pass
+
+    def launch_projectile(self):
+        self.room.create_object(Bullet, )
+    '''
+    A : weapon -> attack, shield -> defense
+    B : pause  (not be processed here)
+    U : head the weapon/shield upside, while pushing
+    D : swap the weapon/shield
+    L : head the weapon/shield leftside, while pushing
+    R : skill
+    '''
+    def command(self, input_sig: tuple):
+        for cmd in input_sig:
+            if cmd == 'A':
+                pass
+            elif cmd == 'U':
+                pass
+            elif cmd == 'L':
+                pass
+            elif cmd == 'D':
+                self.move(0, 1)
+                pass
+            elif cmd == 'R':
+                pass
+
+
+#############################################################################
+#                                                                           #
+# Bullet.py                                                                 #
+#                                                                           #
+#############################################################################
+
+
+class Bullet(GameObject):
+    
 
 
 #############################################################################
@@ -695,15 +734,15 @@ class Controller:
     def get_input(self) -> dict:
         res = dict()
         for key, value in self.input_dict.items():
-            res[key] = not value;
+            res[key] = not value.value
         
         return res
     
     # return dict, which only has input values as True
-    def get_valid_input(self) -> dict:
-        res = dict()
+    def get_valid_input(self) -> list:
+        res = list()
         for key, value in self.input_dict.items():
-            if not value: res[key] = not value;
+            if not value.value: res.append(key)
         
         return res
     

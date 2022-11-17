@@ -47,27 +47,7 @@ class DisplayManager:
         #self.pen = ImageDraw.Draw(self.paper)
 
         self.display()
-        
-    """
-    def refresh(self, obj_list=None):
-        self.paper = DisplayManager.image_build(self.width, self.height, self.bg, obj_list)
-        '''
-        self.paper = self.bg.copy()
-        
-        if obj_list is not None:
-            self.objects = obj_list
-        
-        for obj in self.objects:
-            if not isinstance(obj, GameObject):
-                print('Something went wrong...')
-                print(type(obj))
-                print(obj)
-            else:
-                self.paper.paste(obj.img, obj.center.to_tuple())
-        
-        '''
-        self.display()
-    """
+
     
     def set_background(self, fill: tuple):
         ImageDraw.Draw(self.bg).rectangle((0, 0, self.width, self.height), fill=fill)    # bg becomes new background
