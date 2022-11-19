@@ -8,7 +8,11 @@ class Enemy(Character):
         # motion for destructing
         import random as r
         if r.random() < self.drop_rate:
+            print('Gold drop!')
             pass # generate gold, item, or else
     
-    def act(self, input_devices: tuple):
+    def act(self, _=None):
+        self.move(-5, 0);
+    
+    def when_collision(self, other):
         pass
