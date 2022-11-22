@@ -15,12 +15,13 @@ import board
 from digitalio import DigitalInOut, Direction
 from adafruit_rgb_display import st7789
 
+# from pkjgame_.GameManager import *        <- use this way
 
 #############################################################################
 #                                                                           #
 # GameManager.py                                                            #
 #                                                                           #
-#############################################################################
+################################################################################
 
 
 class GameManager:
@@ -55,7 +56,8 @@ class GameManager:
         self.user = UserInfo()
         
         
-        self.rm.create_room(self.screen_width, self.screen_height)
+        self.rm.create_room(self.screen_width, self.screen_height, game=True)
+        self.rm.current_room.set_enemy_spawn_delay(3)
         self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
@@ -65,8 +67,15 @@ class GameManager:
     def manage(self):
         i=0
         while True:
+            if ('B' in self.joystick.get_valid_input()): 
+                print('Game End By B key')
+                break
+
             i += 1
-            self.rm.current_room.objects_act((self.joystick,))
+            self.rm.current_room.objects_act((self.joystick,))  # every objects in the room acts
+                                                                # use joystick if it's needed
+            
+            # codes in this block are called by fps (every 33ms)
             if self.fps_alarm.resetAlarm():
                 #self.print_debug()
                 self.disp()
@@ -104,6 +113,7 @@ class SimpleDirection(Enum):
     UP = auto()
     LEFT = auto()
     DOWN = auto()
+
 
 #############################################################################
 #                                                                           #
@@ -348,7 +358,7 @@ class DisplayManager:
 #                                                                           #
 # RoomManager.py                                                            #
 #                                                                           #
-#############################################################################
+##################################################################################
 
 
 class Room:
@@ -366,6 +376,8 @@ class Room:
         else:
             self.background = bg
         self.image = copy.deepcopy(self.background)
+
+        self.am = AlarmManager()
 
         self.reset_image()
 
@@ -391,6 +403,7 @@ class Room:
     
     def del_object(self, obj):
         del self.objects[obj.id]
+        gc.collect()
         self.reset_image()
     
     def get_objects(self):
@@ -399,6 +412,27 @@ class Room:
     def get_image(self):
         return self.image
     
+###!!###
+class GameRoom(Room):
+    def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
+        super().__init__(id, room_width, room_height, bg, objs)
+
+        self.enemy_spawn_delay = 3
+        self.enemy_spawn_alarm = self.am.new_alarm(self.enemy_spawn_delay)
+    
+    
+    def objects_act(self, input_devices):
+        super().objects_act(input_devices)
+        import sys
+        if self.enemy_spawn_alarm.resetAlarm():
+            i = self.create_object(Enemy, (210, 120, 16, 16, DisplayManager.get_rectangle_image(16,16)))
+            print(sys.getrefcount(i))
+            
+
+    def set_enemy_spawn_delay(self, new_delay: int):
+        self.enemy_spawn_delay = new_delay
+        self.enemy_spawn_alarm.setClock(new_delay)
+        
     
 class RoomManager:
 
@@ -407,14 +441,22 @@ class RoomManager:
         self.number_rooms = 0
         self.rooms = dict()
 
+        '''
         r = self.create_room(first_room_width, first_room_height)
         self.first_room = r
         self.current_room = r
+        '''
 
-    def create_room(self, room_width, room_height, objs=dict()):
+    def create_room(self, room_width, room_height, objs=dict(), game=False):
         self.number_rooms += 1
         self.current_id += 1
-        r = Room(self.current_id, room_width, room_height, objs=objs)
+
+        if game:
+            roomtype = GameRoom
+        else: 
+            roomtype = Room
+        
+        r = roomtype(self.current_id, room_width, room_height, objs=objs)
 
         if self.number_rooms == 1:
             self.first_room = r
@@ -546,7 +588,7 @@ class UserInfo:
 #                                                                           #
 # GameObject.py                                                             #
 #                                                                           #
-#############################################################################
+################################################################################
 
 
 # All Objects in game (Character, Item, Bullets...) must be extended by this class
@@ -576,11 +618,14 @@ class GameObject(metaclass=ABCMeta):
         self.outline = "#FFFFFF"
 
     def __del__(self):
-        print(f'{self} destroyed.')
+        print(f'{self}[{self.id}] destroyed.')
 
     @abstractmethod
     def act(self, input_devices: tuple):
         pass
+    
+    def destroy(self):
+        self.room.del_object(self)
 
     # if dir is not None, arguments x and y will be ignored
     def move(self, x=0, y=0):
@@ -643,23 +688,36 @@ class Character(GameObject):
 #                                                                           #
 # Enemy.py                                                                  #
 #                                                                           #
-#############################################################################
+################################################################################
 
 
 class Enemy(Character):
     
-    def __init__(self, room, id, x, y, width, height, image=None):
-        super.__init__(room, id, x, y, width, height, image)
+    def __init__(self, room, id, x, y, width=16, height=16, image=None, speed=3, dir=SimpleDirection.LEFT):
+        super().__init__(room, id, x, y, width, height, image)
+        self.speed = speed
+        self.dir = dir
         self.drop_rate = 0.3    # or else
 
     def __del__(self):
         # motion for destructing
-        import random as r
-        if r.random() < self.drop_rate:
+        if self.is_dropped():
+            print('drop!')
             pass # generate gold, item, or else
+            
+    def destroy(self):
+        self.room.del_object(self)
     
     def act(self, input_devices: tuple):
-        pass
+        self.move_by_dir(self.speed, self.dir)
+
+        #print(self, self.center.is_left_than(Pos(0,0)))
+        if self.center.is_left_than(Pos(0, 0)):
+            self.destroy()
+
+    def is_dropped(self):
+        return random.random() < self.drop_rate
+        
 
 #############################################################################
 #                                                                           #
@@ -693,8 +751,7 @@ class Player(Character):
         pass
 
     def launch_projectile(self):
-        self.room.create_object(Bullet, (*(self.center.to_tuple()), 4, 4, DisplayManager.get_rectangle_image(4, 4), 10, self.heading))
-
+        i = self.room.create_object(Bullet, (*(self.center.to_tuple()), 4, 4, DisplayManager.get_rectangle_image(4, 4), 10, self.heading))
 
     '''
     A : weapon -> attack, shield -> defense
@@ -728,7 +785,7 @@ class Player(Character):
 #                                                                           #
 # Bullet.py                                                                 #
 #                                                                           #
-#############################################################################
+################################################################################
 
 
 class Bullet(GameObject):
@@ -741,8 +798,6 @@ class Bullet(GameObject):
     def __del__(self):
         pass # add some effects?
 '''
-    def destroy(self):
-        self.room.del_object(self)
     
     def act(self, input_devices:tuple):
         if (not self.is_in_room()):
