@@ -37,13 +37,6 @@ class GameManager:
     def start(self):
         self.setup()
         self.manage()
-        '''
-        try:
-            self.manage()
-        except:
-            print('what')
-            return
-            '''
 
     def stop(self):
         raise GameManager.GameEndException('Game Stopped.')
@@ -58,7 +51,7 @@ class GameManager:
         
         self.rm.create_room(self.screen_width, self.screen_height, game=True)
         self.rm.current_room.set_enemy_spawn_delay(3)
-        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
+        self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -79,7 +72,7 @@ class GameManager:
             if self.fps_alarm.resetAlarm():
                 #self.print_debug()
                 self.disp()
-                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (255*(i%2), 255*((i+1)%2), 0, 100)))
+                #self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (255*(i%2), 255*((i+1)%2), 0, 100)))
 
 
     def create(self, cls: type, args: tuple):
@@ -157,6 +150,9 @@ class Pos:
         return sqrt((self.x - other.x) ** 2  + (self.y - other.y) ** 2)
     
     def to_tuple(self) -> tuple:
+        return (int(self.x), int(self.y))
+
+    def to_float_tuple(self) -> tuple:
         return (self.x, self.y)
     
     def to_string(self) -> str:
@@ -273,7 +269,7 @@ class AlarmManager:
 #                                                                           #
 # DisplayManager.py                                                         #
 #                                                                           #
-#############################################################################
+################################################################################
 
 
 class DisplayManager:
@@ -343,7 +339,7 @@ class DisplayManager:
                 print()
                 raise Exception('DisplayManager.image_build() : given objects must be GameObject')
             else:
-                paper.paste(obj.img, obj.center.to_tuple(), obj.img)
+                paper.paste(obj.img, (int(obj.x) - obj.width//2, int(obj.y) - obj.height//2), obj.img)
         
         return paper
 
@@ -378,6 +374,8 @@ class Room:
         self.image = copy.deepcopy(self.background)
 
         self.am = AlarmManager()
+        
+        self.obj_player = None  # not None only in the GameRoom
 
         self.reset_image()
 
@@ -392,6 +390,7 @@ class Room:
 
     # makes object with room, id
     def create_object(self, cls: type, args: tuple):
+
         self.object_id += 1
         obj = cls(self, self.object_id, *args)
 
@@ -399,6 +398,13 @@ class Room:
         
         print(f'{cls} created.')
         self.reset_image()
+
+        if cls == Player:
+            if self.obj_player is not None:
+                raise Exception("...but the Player already exists!")
+            else:
+                self.obj_player = obj
+
         return obj
     
     def del_object(self, obj):
@@ -418,15 +424,21 @@ class GameRoom(Room):
         super().__init__(id, room_width, room_height, bg, objs)
 
         self.enemy_spawn_delay = 3
+        self.speed = 3
         self.enemy_spawn_alarm = self.am.new_alarm(self.enemy_spawn_delay)
+
+        self.room_speed_alarm = self.am.new_alarm(5)
     
     
     def objects_act(self, input_devices):
         super().objects_act(input_devices)
-        import sys
+        
+        if self.room_speed_alarm.resetAlarm():
+            self.speed += 0.5
+        
         if self.enemy_spawn_alarm.resetAlarm():
-            i = self.create_object(Enemy, (210, 120, 16, 16, DisplayManager.get_rectangle_image(16,16)))
-            print(sys.getrefcount(i))
+            i = self.create_object(Enemy, (240, 188, 16, 16, DisplayManager.get_rectangle_image(16,16)))
+            print(f'number of objects in this room : {len(self.objects)}')
             
 
     def set_enemy_spawn_delay(self, new_delay: int):
@@ -603,6 +615,8 @@ class GameObject(metaclass=ABCMeta):
     '''
 
     @abstractmethod
+    # x, y comes for image (value of lt)
+    # in fact, Gameobject's x, y field becomes x+width//2, y+width//2
     def __init__(self, room, id, x, y, width, height, image=None):
         if image is not None:
             self.img = image
@@ -612,9 +626,12 @@ class GameObject(metaclass=ABCMeta):
         self.room = room
         self.id = id
         self.state = None
-        self.center = Pos(x, y)
-        self.x = x
-        self.y = y
+
+        self.center = Pos(x+width//2, y+height//2)
+        self.x = self.center.x
+        self.y = self.center.y
+        self.width = width
+        self.height = height
         self.outline = "#FFFFFF"
 
     def __del__(self):
@@ -651,11 +668,14 @@ class GameObject(metaclass=ABCMeta):
         self.y = self.center.y
     
     def get_range(self) -> tuple:   # (Pos1, Pos2)
-        return (Pos(self.x - self.width/2, self.y - self.height/2), Pos(self.x + self.width/2, self.y + self.height/2))
+        return (
+            Pos(self.x - self.width/2, self.y - self.height/2), 
+            Pos(self.x + self.width/2, self.y + self.height/2)
+            )
     
     def is_in_range(self, ran: tuple):
         lt = ran[0]; rb = ran[1]
-        return (lt.x < self.x < rb.x and lt.y < self.y < rb.y)
+        return (lt.x < self.x < rb.x) and (lt.y < self.y < rb.y)
 
     def is_in_room(self):
         return self.is_in_range(
@@ -684,6 +704,27 @@ class Character(GameObject):
         super().__init__(room, id, x, y, width, height, image)
 
 
+###!!###
+class Gold(GameObject):
+    size = 8
+    def __init__(self, room, id, x, y, image=None, dir=None):
+        # actually, speed and dir must not be None
+        super().__init__(room, id, x, y, Gold.size, Gold.size, image)
+        self.dir = dir
+    
+    def __del__(self):
+        print("gold get!")
+
+    def act(self, _):
+        self.move_by_dir(self.room.speed, self.dir)
+
+        if self.center.is_left_than(Pos(0, 0)):
+            self.destroy()
+        
+        if self.check_collision(self.room.obj_player):
+            print("gold++;")
+            self.destroy()
+
 #############################################################################
 #                                                                           #
 # Enemy.py                                                                  #
@@ -693,23 +734,24 @@ class Character(GameObject):
 
 class Enemy(Character):
     
-    def __init__(self, room, id, x, y, width=16, height=16, image=None, speed=3, dir=SimpleDirection.LEFT):
+    def __init__(self, room, id, x, y, width=16, height=16, image=None, dir=SimpleDirection.LEFT):
         super().__init__(room, id, x, y, width, height, image)
-        self.speed = speed
+        #self.speed = self.room.speed
         self.dir = dir
-        self.drop_rate = 0.3    # or else
+        self.drop_rate = 0.9    # or else
 
     def __del__(self):
-        # motion for destructing
+        # todo: motion for destructing
         if self.is_dropped():
             print('drop!')
+            self.room.create_object(Gold, (self.x, self.y, DisplayManager.get_rectangle_image(Gold.size, Gold.size, (255,255,50,100)), self.dir))
             pass # generate gold, item, or else
             
     def destroy(self):
         self.room.del_object(self)
     
     def act(self, input_devices: tuple):
-        self.move_by_dir(self.speed, self.dir)
+        self.move_by_dir(self.room.speed, self.dir)
 
         #print(self, self.center.is_left_than(Pos(0,0)))
         if self.center.is_left_than(Pos(0, 0)):
@@ -746,12 +788,12 @@ class Player(Character):
 
     # if holding gun-type weapon... launch_projectile()
     # else... something
-    def attack(self):
-        self.launch_projectile()
+    def attack(self, dir):
+        self.launch_projectile(dir)
         pass
 
-    def launch_projectile(self):
-        i = self.room.create_object(Bullet, (*(self.center.to_tuple()), 4, 4, DisplayManager.get_rectangle_image(4, 4), 10, self.heading))
+    def launch_projectile(self, dir):
+        i = self.room.create_object(Bullet, (*(self.center.to_tuple()), 4, 4, DisplayManager.get_rectangle_image(4, 4), 10, dir))
 
     '''
     A : weapon -> attack, shield -> defense
@@ -762,21 +804,23 @@ class Player(Character):
     R : skill
     '''
     def command(self, input_sig: tuple):
+        # default direction is right side.
+        print(self.heading)
+        
+        if ('U' not in input_sig) and ('L' not in input_sig):
+            self.heading = SimpleDirection.RIGHT
+
         for cmd in input_sig:
             if cmd == 'A':
-                self.attack()
+                self.attack(self.heading)
             elif cmd == 'U':
-                self.move(0, -1)
                 self.heading = SimpleDirection.UP
             elif cmd == 'L':
-                self.move(-1, 0)
                 self.heading = SimpleDirection.LEFT
             elif cmd == 'D':
-                self.move(0, 1)
                 self.heading = SimpleDirection.DOWN
                 pass
             elif cmd == 'R':
-                self.heading = SimpleDirection.RIGHT
                 pass
         
 
@@ -800,9 +844,19 @@ class Bullet(GameObject):
 '''
     
     def act(self, input_devices:tuple):
+        self.move_by_dir(self.speed, self.dir)
+
         if (not self.is_in_room()):
             self.destroy()
-        self.move_by_dir(self.speed, self.dir)
+
+        # wait, what...?
+        for targ in list(self.room.objects.values()):
+            
+            if type(targ) == Enemy and self.check_collision(targ):
+                print("Bullet hit!!")
+                targ.destroy()
+                self.destroy()
+                
 
 
 #############################################################################
