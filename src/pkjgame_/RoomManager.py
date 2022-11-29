@@ -1,20 +1,3 @@
-from AlarmManager import *
-from Bullet import *
-from Character import *
-from Controller import *
-from DisplayManager import *
-from Enemy import *
-from GameManager import *
-from GameObject import *
-from Gold import *
-from Player import *
-from Pos import *
-from SimpleDirection import *
-from UserInfo import *
-
-from PIL import Image, ImageDraw, ImageFont
-import copy
-
 class Room:
     
     def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
@@ -95,8 +78,17 @@ class GameRoom(Room):
             self.speed += 0.5
         
         if self.enemy_spawn_alarm.resetAlarm():
-            i = self.create_object(Enemy, (240, 188, 16, 16, DisplayManager.get_rectangle_image(16,16)))
-            print(f'number of objects in this room : {len(self.objects)}')
+            spawn_x = 240
+            spawn_y = 188
+            move_dir = SimpleDirection.LEFT
+
+            if random.random() < 0.4:
+                spawn_x = 60
+                spawn_y = 0
+                move_dir = SimpleDirection.DOWN
+            
+            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, DisplayManager.get_rectangle_image(16,16), move_dir))
+            #print(f'number of objects in this room : {len(self.objects)}')
             
 
     def set_enemy_spawn_delay(self, new_delay: int):

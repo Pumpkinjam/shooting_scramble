@@ -1,11 +1,3 @@
-from GameManager import *
-from GameObject import *
-from Player import *
-from Pos import *
-from RoomManager import *
-from SimpleDirection import *
-from UserInfo import *
-
 class Gold(GameObject):
     size = 8
     def __init__(self, room, id, x, y, image=None, dir=None):

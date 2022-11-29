@@ -1,6 +1,3 @@
-import board
-from digitalio import DigitalInOut, Direction
-
 class Controller:
     def __init__(self):
 

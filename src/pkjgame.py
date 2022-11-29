@@ -15,7 +15,7 @@ import board
 from digitalio import DigitalInOut, Direction
 from adafruit_rgb_display import st7789
 
-# from pkjgame_.GameManager import *        <- use this way
+# from pkjgame_.GameManager import *        <- use this way... why doesn't work...
 
 #############################################################################
 #                                                                           #
@@ -51,7 +51,8 @@ class GameManager:
         
         self.rm.create_room(self.screen_width, self.screen_height, game=True)
         self.rm.current_room.set_enemy_spawn_delay(3)
-        self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100))))
+        self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100)) ))
+        self.boss = self.create(Boss, (0, 120, 30, 120, DisplayeManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -72,7 +73,6 @@ class GameManager:
             if self.fps_alarm.resetAlarm():
                 #self.print_debug()
                 self.disp()
-                #self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (255*(i%2), 255*((i+1)%2), 0, 100)))
 
 
     def create(self, cls: type, args: tuple):
@@ -437,8 +437,17 @@ class GameRoom(Room):
             self.speed += 0.5
         
         if self.enemy_spawn_alarm.resetAlarm():
-            i = self.create_object(Enemy, (240, 188, 16, 16, DisplayManager.get_rectangle_image(16,16)))
-            print(f'number of objects in this room : {len(self.objects)}')
+            spawn_x = 240
+            spawn_y = 188
+            move_dir = SimpleDirection.LEFT
+
+            if random.random() < 0.4:
+                spawn_x = 60
+                spawn_y = 0
+                move_dir = SimpleDirection.DOWN
+            
+            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, DisplayManager.get_rectangle_image(16,16), move_dir))
+            #print(f'number of objects in this room : {len(self.objects)}')
             
 
     def set_enemy_spawn_delay(self, new_delay: int):
@@ -766,6 +775,24 @@ class Enemy(Character):
 
     def is_dropped(self):
         return random.random() < self.drop_rate
+
+
+class Boss(Character):
+    
+    def __init__(self, room, id, x, y, width=30, height=120, image=None):
+        super().__init__(room, id, x, y, width, height, image)
+        self.fire_alarm = AlarmManager.new_alarm(5)
+
+    def act(self, _: tuple):
+        # todo : randomize the delay
+        if self.fire_alarm.resetAlarm():
+            self.room.create_object(Laser, (*(self.center.to_tuple()), 8, 3, DisplayManager.get_rectangle_image(8, 3), 3, SimpleDirection.RIGHT))
+
+        if self.check_collision(self.room.obj_player):
+            # something more...?
+            self.room.del_object(self.room.obj_player)
+
+
         
 
 #############################################################################
@@ -787,11 +814,17 @@ class Player(Character):
         #self.state
         #self.hp
 
+    def __del__(self):
+        raise GameManager.GameEndException('Game Over.')
+
     def act(self, input_devices):
         for dev in input_devices:
             if type(dev) == Controller:
                 self.command(dev.get_valid_input())
     
+    def on_hit(self):
+        # todo: on hit actions (move slightly to left)
+        pass
 
     # if holding gun-type weapon... launch_projectile()
     # else... something
@@ -848,7 +881,7 @@ class Bullet(GameObject):
     '''
     def __del__(self):
         pass # add some effects?
-'''
+    '''
     
     def act(self, input_devices:tuple):
         self.move_by_dir(self.speed, self.dir)
@@ -863,6 +896,24 @@ class Bullet(GameObject):
                 print("Bullet hit!!")
                 targ.destroy()
                 self.destroy()
+
+
+class Laser(GameObject):
+    def __init__(self, room, id, x, y, width, height, image=None, speed=1, dir=SimpleDirection.RIGHT):
+        super().__init__(room, id, x, y, width, height, image)
+        self.speed = speed
+        self.dir = dir
+    
+    def act(self, input_devices:tuple):
+        self.move_by_dir(self.speed, self.dir)
+
+        if (not self.is_in_room()):
+            self.destroy()
+
+        if self.check_collision(self.room.obj_player):
+            print("Laser hit!!")
+            self.room.obj_player.on_hit()
+            self.destroy()
                 
 
 

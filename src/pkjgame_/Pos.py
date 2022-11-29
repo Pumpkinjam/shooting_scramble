@@ -1,5 +1,3 @@
-from math import sqrt
-
 class Pos:
     '''
     float x, y;

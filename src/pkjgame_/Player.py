@@ -1,17 +1,3 @@
-from AlarmManager import *
-from Bullet import *
-from Character import *
-from Controller import *
-from DisplayManager import *
-from Enemy import *
-from GameManager import *
-from GameObject import *
-from Gold import *
-from Pos import *
-from RoomManager import *
-from SimpleDirection import *
-from UserInfo import *
-
 class Player(Character):
     
     weapon_list = []    # to be implemented (here, or maybe in other class)
@@ -24,11 +10,17 @@ class Player(Character):
         #self.state
         #self.hp
 
+    def __del__(self):
+        raise GameManager.GameEndException('Game Over.')
+
     def act(self, input_devices):
         for dev in input_devices:
             if type(dev) == Controller:
                 self.command(dev.get_valid_input())
     
+    def on_hit(self):
+        # todo: on hit actions (move slightly to left)
+        pass
 
     # if holding gun-type weapon... launch_projectile()
     # else... something

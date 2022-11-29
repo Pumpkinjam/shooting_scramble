@@ -1,19 +1,3 @@
-from AlarmManager import *
-from Bullet import *
-from Character import *
-from Controller import *
-from DisplayManager import *
-from Enemy import *
-from GameManager import *
-from Gold import *
-from Player import *
-from Pos import *
-from RoomManager import *
-from SimpleDirection import *
-from UserInfo import *
-
-from abc import *
-
 # All Objects in game (Character, Item, Bullets...) must be extended by this class
 # This class is abstract (Interface-like)
 class GameObject(metaclass=ABCMeta):

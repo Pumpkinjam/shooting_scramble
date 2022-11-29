@@ -1,19 +1,3 @@
-from Bullet import *
-from Character import *
-from Controller import *
-from DisplayManager import *
-from Enemy import *
-from GameManager import *
-from GameObject import *
-from Gold import *
-from Player import *
-from Pos import *
-from RoomManager import *
-from SimpleDirection import *
-from UserInfo import *
-
-import time
-
 class Alarm:
     '''
     float clock; // once Alarm have been done, clock becomes -1

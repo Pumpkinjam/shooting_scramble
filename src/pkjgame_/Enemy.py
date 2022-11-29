@@ -1,19 +1,3 @@
-from AlarmManager import *
-from Bullet import *
-from Character import *
-from Controller import *
-from DisplayManager import *
-from GameManager import *
-from GameObject import *
-from Gold import *
-from Player import *
-from Pos import *
-from RoomManager import *
-from SimpleDirection import *
-from UserInfo import *
-
-import random
-
 class Enemy(Character):
     
     def __init__(self, room, id, x, y, width=16, height=16, image=None, dir=SimpleDirection.LEFT):
@@ -41,3 +25,20 @@ class Enemy(Character):
 
     def is_dropped(self):
         return random.random() < self.drop_rate
+
+
+class Boss(Character):
+    
+    def __init__(self, room, id, x, y, width=30, height=120, image=None):
+        super().__init__(room, id, x, y, width, height, image)
+        self.fire_alarm = AlarmManager.new_alarm(5)
+
+    def act(self, _: tuple):
+        # todo : randomize the delay
+        if self.fire_alarm.resetAlarm():
+            self.room.create_object(Laser, (*(self.center.to_tuple()), 8, 3, DisplayManager.get_rectangle_image(8, 3), 3, SimpleDirection.RIGHT))
+
+        if self.check_collision(self.room.obj_player):
+            # something more...?
+            self.room.del_object(self.room.obj_player)
+
