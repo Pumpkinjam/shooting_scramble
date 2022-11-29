@@ -52,7 +52,7 @@ class GameManager:
         self.rm.create_room(self.screen_width, self.screen_height, game=True)
         self.rm.current_room.set_enemy_spawn_delay(3)
         self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100)) ))
-        self.boss = self.create(Boss, (0, 120, 30, 120, DisplayeManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
+        self.boss = self.create(Boss, (0, 120, 30, 120, DisplayManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -240,6 +240,7 @@ class AlarmManager:
         # self.threads = dict()
     
     def new(self, t=-1): return self.new_alarm(t)
+
     def new_alarm(self, t=-1) -> Alarm:
         self.current_id += 1
         return self._new_alarm(self.current_id, t)
@@ -339,14 +340,14 @@ class DisplayManager:
                 print()
                 raise Exception('DisplayManager.image_build() : given objects must be GameObject')
             else:
-                paper.paste(obj.img, (int(obj.x) - obj.width//2, int(obj.y) - obj.height//2), obj.img)
+                paper.paste(obj.img, (int(obj.x), int(obj.y)), obj.img)
         
         return paper
 
     @staticmethod
     def get_rectangle_image(width: int, height: int, color: tuple = (0,0,0)):
         rec = Image.new('RGBA', (width, height))
-        ImageDraw.Draw(rec).rectangle((0, 0, 32, 32), fill=color)
+        ImageDraw.Draw(rec).rectangle((0, 0, width, height), fill=color)
         return rec
 
 
@@ -396,7 +397,7 @@ class Room:
 
         self.objects[self.object_id] = obj
         
-        print(f'{cls} created.')
+        #print(f'{cls} created.')
         self.reset_image()
 
         if cls == Player:
@@ -408,7 +409,16 @@ class Room:
         return obj
     
     def del_object(self, obj):
-        del self.objects[obj.id]
+        if obj == self.obj_player:
+            raise GameManager.GameEndException('Game over.')
+        
+        try:
+            del self.objects[obj.id]
+        except:
+            print(f'KeyError : {obj.id}')
+            for k, v in self.objects.items():
+                print(k, v)
+        
         gc.collect()
         self.reset_image()
     
@@ -442,7 +452,7 @@ class GameRoom(Room):
             move_dir = SimpleDirection.LEFT
 
             if random.random() < 0.4:
-                spawn_x = 60
+                spawn_x = (self.obj_player.center_x + self.obj_player.x)//2
                 spawn_y = 0
                 move_dir = SimpleDirection.DOWN
             
@@ -511,8 +521,7 @@ class RoomManager:
 
     def goto_room(self, room=None, room_id=None):
         if (room is None and room_id is None): 
-            print('goto_room must have at least 1 arguments.')
-            raise Exception()
+            raise RoomManager.NoRoomException('goto_room must have at least 1 arguments.')
         
         if room_id is None:
             self.current_room = room
@@ -636,15 +645,19 @@ class GameObject(metaclass=ABCMeta):
         self.id = id
         self.state = None
 
-        self.center = Pos(x+width//2, y+height//2)
-        self.x = self.center.x
-        self.y = self.center.y
+        self.center_x = x+width//2
+        self.center_y = y+height//2
+        self.center = Pos(self.center_x, self.center_y)
+
+        self.x = x
+        self.y = y
         self.width = width
         self.height = height
         self.outline = "#FFFFFF"
 
     def __del__(self):
-        print(f'{self}[{self.id}] destroyed.')
+        pass
+        #print(f'{self}[{self.id}] destroyed.')
 
     @abstractmethod
     def act(self, input_devices: tuple):
@@ -656,8 +669,10 @@ class GameObject(metaclass=ABCMeta):
     # if dir is not None, arguments x and y will be ignored
     def move(self, x=0, y=0):
         self.center.move(x, y)
-        self.x = self.center.x
-        self.y = self.center.y
+        self.x += x
+        self.y += y
+        self.center_x += x
+        self.center_y += y
 
     def move_by_dir(self, speed, dir):
         if dir == SimpleDirection.RIGHT:
@@ -678,8 +693,8 @@ class GameObject(metaclass=ABCMeta):
     
     def get_range(self) -> tuple:   # (Pos1, Pos2)
         return (
-            Pos(self.x - self.width/2, self.y - self.height/2), 
-            Pos(self.x + self.width/2, self.y + self.height/2)
+            Pos(self.x, self.y), 
+            Pos(self.x + self.width, self.y + self.height)
             )
     
     def is_in_range(self, ran: tuple):
@@ -692,7 +707,7 @@ class GameObject(metaclass=ABCMeta):
             )
 
     def check_collision(self, other):
-        return self.is_in_range(other.get_range())
+        return self.is_in_range(other.get_range()) or other.is_in_range(self.get_range())
     
     def set_img(self, img):
         self.img = img
@@ -728,7 +743,8 @@ class Gold(GameObject):
         self.dir = dir
     
     def __del__(self):
-        print("gold get!")
+        pass
+        #print("gold get!")
 
     def act(self, _):
         self.move_by_dir(self.room.speed, self.dir)
@@ -737,7 +753,7 @@ class Gold(GameObject):
             self.destroy()
         
         if self.check_collision(self.room.obj_player):
-            print("gold++;")
+            print("gold++;") # todo
             self.destroy()
 
 
@@ -773,6 +789,10 @@ class Enemy(Character):
         if self.center.is_left_than(Pos(0, 0)):
             self.destroy()
 
+        if self.check_collision(self.room.obj_player):
+            self.room.obj_player.on_hit(3)
+            self.destroy()
+
     def is_dropped(self):
         return random.random() < self.drop_rate
 
@@ -781,16 +801,18 @@ class Boss(Character):
     
     def __init__(self, room, id, x, y, width=30, height=120, image=None):
         super().__init__(room, id, x, y, width, height, image)
-        self.fire_alarm = AlarmManager.new_alarm(5)
+        self.am = AlarmManager()
+        self.fire_alarm = self.am.new_alarm(0.5)
 
     def act(self, _: tuple):
         # todo : randomize the delay
         if self.fire_alarm.resetAlarm():
-            self.room.create_object(Laser, (*(self.center.to_tuple()), 8, 3, DisplayManager.get_rectangle_image(8, 3), 3, SimpleDirection.RIGHT))
+            self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 3, DisplayManager.get_rectangle_image(8, 3), 3, SimpleDirection.RIGHT))
 
         if self.check_collision(self.room.obj_player):
             # something more...?
-            self.room.del_object(self.room.obj_player)
+            print('oops')
+            self.room.obj_player.destroy()
 
 
         
@@ -822,8 +844,9 @@ class Player(Character):
             if type(dev) == Controller:
                 self.command(dev.get_valid_input())
     
-    def on_hit(self):
-        # todo: on hit actions (move slightly to left)
+    def on_hit(self, dmg=1):
+        # todo: on hit actions
+        self.move(-dmg, 0)
         pass
 
     # if holding gun-type weapon... launch_projectile()
@@ -845,7 +868,7 @@ class Player(Character):
     '''
     def command(self, input_sig: tuple):
         # default direction is right side.
-        print(self.heading)
+        #print(self.heading)
         
         if ('U' not in input_sig) and ('L' not in input_sig):
             self.heading = SimpleDirection.RIGHT
@@ -892,7 +915,7 @@ class Bullet(GameObject):
         # wait, what...?
         for targ in list(self.room.objects.values()):
             
-            if type(targ) == Enemy and self.check_collision(targ):
+            if self.check_collision(targ) and type(targ) == Enemy:
                 print("Bullet hit!!")
                 targ.destroy()
                 self.destroy()
