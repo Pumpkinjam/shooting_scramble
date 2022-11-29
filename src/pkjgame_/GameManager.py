@@ -1,3 +1,17 @@
+from AlarmManager import *
+from Bullet import *
+from Character import *
+from Controller import *
+from DisplayManager import *
+from Enemy import *
+from GameObject import *
+from Gold import *
+from Player import *
+from Pos import *
+from RoomManager import *
+from SimpleDirection import *
+from UserInfo import *
+
 import gc
 
 class GameManager:
@@ -13,13 +27,6 @@ class GameManager:
     def start(self):
         self.setup()
         self.manage()
-        '''
-        try:
-            self.manage()
-        except:
-            print('what')
-            return
-            '''
 
     def stop(self):
         raise GameManager.GameEndException('Game Stopped.')
@@ -32,8 +39,9 @@ class GameManager:
         self.user = UserInfo()
         
         
-        self.rm.create_room(self.screen_width, self.screen_height)
-        self.player = self.create(Player, (60, 60, 32, 32, DisplayManager.get_rectangle_image(32, 32, (0,0,0,255))))
+        self.rm.create_room(self.screen_width, self.screen_height, game=True)
+        self.rm.current_room.set_enemy_spawn_delay(3)
+        self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100))))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -42,12 +50,19 @@ class GameManager:
     def manage(self):
         i=0
         while True:
+            if ('B' in self.joystick.get_valid_input()): 
+                print('Game End By B key')
+                break
+
             i += 1
-            self.rm.current_room.objects_act((self.joystick,))
+            self.rm.current_room.objects_act((self.joystick,))  # every objects in the room acts
+                                                                # use joystick if it's needed
+            
+            # codes in this block are called by fps (every 33ms)
             if self.fps_alarm.resetAlarm():
                 #self.print_debug()
                 self.disp()
-                self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (255*(i%2), 255*((i+1)%2), 0, 100)))
+                #self.player.set_img(DisplayManager.get_rectangle_image(32, 32, (255*(i%2), 255*((i+1)%2), 0, 100)))
 
 
     def create(self, cls: type, args: tuple):

@@ -1,3 +1,21 @@
+from AlarmManager import *
+from Bullet import *
+from Character import *
+from Controller import *
+from Enemy import *
+from GameManager import *
+from GameObject import *
+from Gold import *
+from Player import *
+from Pos import *
+from RoomManager import *
+from SimpleDirection import *
+from UserInfo import *
+
+import board
+from digitalio import DigitalInOut
+from adafruit_rgb_display import st7789
+
 class DisplayManager:
     
     bg_length = 240
@@ -65,7 +83,7 @@ class DisplayManager:
                 print()
                 raise Exception('DisplayManager.image_build() : given objects must be GameObject')
             else:
-                paper.paste(obj.img, obj.center.to_tuple(), obj.img)
+                paper.paste(obj.img, (int(obj.x) - obj.width//2, int(obj.y) - obj.height//2), obj.img)
         
         return paper
 

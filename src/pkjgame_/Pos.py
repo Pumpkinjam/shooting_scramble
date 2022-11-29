@@ -1,3 +1,5 @@
+from math import sqrt
+
 class Pos:
     '''
     float x, y;
@@ -33,6 +35,9 @@ class Pos:
         return sqrt((self.x - other.x) ** 2  + (self.y - other.y) ** 2)
     
     def to_tuple(self) -> tuple:
+        return (int(self.x), int(self.y))
+
+    def to_float_tuple(self) -> tuple:
         return (self.x, self.y)
     
     def to_string(self) -> str:

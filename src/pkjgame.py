@@ -21,7 +21,7 @@ from adafruit_rgb_display import st7789
 #                                                                           #
 # GameManager.py                                                            #
 #                                                                           #
-################################################################################
+#############################################################################
 
 
 class GameManager:
@@ -269,7 +269,7 @@ class AlarmManager:
 #                                                                           #
 # DisplayManager.py                                                         #
 #                                                                           #
-################################################################################
+#############################################################################
 
 
 class DisplayManager:
@@ -354,7 +354,7 @@ class DisplayManager:
 #                                                                           #
 # RoomManager.py                                                            #
 #                                                                           #
-##################################################################################
+#############################################################################
 
 
 class Room:
@@ -418,7 +418,7 @@ class Room:
     def get_image(self):
         return self.image
     
-###!!###
+
 class GameRoom(Room):
     def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
         super().__init__(id, room_width, room_height, bg, objs)
@@ -524,7 +524,7 @@ class RoomManager:
 
 
 class UserInfo:
-
+    
     filename1 = 'playerInfo.sav'
     filename2 = 'playerDat.sav'
 
@@ -542,7 +542,7 @@ class UserInfo:
 
         with open(UserInfo.filename1, 'r') as f:
             vals = f.readline()
-            if vals is not line: return
+            if not vals: return
 
             vals = vals.split(', ')
             self.gold = int(vals[0])
@@ -576,7 +576,7 @@ class UserInfo:
     
     # gold, score, high_score, play_time
     def to_csv_format(self):
-        return f'{gold}, {score}, {high_score}, {play_time}'
+        return f'{self.gold}, {self.score}, {self.high_score}, {self.play_time}'
     
     def playtime_to_string(self):
         tmp = self.play_time
@@ -600,7 +600,7 @@ class UserInfo:
 #                                                                           #
 # GameObject.py                                                             #
 #                                                                           #
-################################################################################
+#############################################################################
 
 
 # All Objects in game (Character, Item, Bullets...) must be extended by this class
@@ -704,7 +704,13 @@ class Character(GameObject):
         super().__init__(room, id, x, y, width, height, image)
 
 
-###!!###
+#############################################################################
+#                                                                           #
+# Gold.py                                                                   #
+#                                                                           #
+#############################################################################
+
+
 class Gold(GameObject):
     size = 8
     def __init__(self, room, id, x, y, image=None, dir=None):
@@ -725,11 +731,12 @@ class Gold(GameObject):
             print("gold++;")
             self.destroy()
 
+
 #############################################################################
 #                                                                           #
 # Enemy.py                                                                  #
 #                                                                           #
-################################################################################
+#############################################################################
 
 
 class Enemy(Character):
@@ -829,7 +836,7 @@ class Player(Character):
 #                                                                           #
 # Bullet.py                                                                 #
 #                                                                           #
-################################################################################
+#############################################################################
 
 
 class Bullet(GameObject):

@@ -1,4 +1,19 @@
+from AlarmManager import *
+from Bullet import *
+from Character import *
+from Controller import *
+from DisplayManager import *
+from Enemy import *
+from GameManager import *
+from GameObject import *
+from Gold import *
+from Player import *
+from Pos import *
+from RoomManager import *
+from SimpleDirection import *
+
 import csv
+import time
 
 class UserInfo:
     
@@ -19,7 +34,7 @@ class UserInfo:
 
         with open(UserInfo.filename1, 'r') as f:
             vals = f.readline()
-            if vals is not line: return
+            if not vals: return
 
             vals = vals.split(', ')
             self.gold = int(vals[0])
@@ -53,7 +68,7 @@ class UserInfo:
     
     # gold, score, high_score, play_time
     def to_csv_format(self):
-        return f'{gold}, {score}, {high_score}, {play_time}'
+        return f'{self.gold}, {self.score}, {self.high_score}, {self.play_time}'
     
     def playtime_to_string(self):
         tmp = self.play_time
