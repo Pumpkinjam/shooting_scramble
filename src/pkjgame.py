@@ -350,6 +350,12 @@ class DisplayManager:
         ImageDraw.Draw(rec).rectangle((0, 0, width, height), fill=color)
         return rec
 
+    @staticmethod
+    def get_text_image(width: int, height: int, msg: str, color: tuple = (0, 0, 0)):
+        txt = Image.new('RGBA', (width,height))
+        ImageDraw.Draw(txt).text((0, 0), msg, color)
+        return txt
+
 
 #############################################################################
 #                                                                           #
@@ -402,7 +408,7 @@ class Room:
 
         if cls == Player:
             if self.obj_player is not None:
-                raise Exception("...but the Player already exists!")
+                raise Exception("the Player already exists!")
             else:
                 self.obj_player = obj
 
@@ -713,6 +719,21 @@ class GameObject(metaclass=ABCMeta):
         self.img = img
 
 
+class TextView(GameObject):
+    
+    def __init__(self, room, id, x, y, width, height, image=None):
+        super().__init__(room, id, x, y, width, height, image)
+        
+    def act(self, _):
+        pass
+
+    def set_text(self, msg: str, color: tuple = None):
+        if msg is None: 
+            self.img = Image.new("RGBA", (width, height))
+        else:
+            self.img = DisplayManager.get_text_image(self.width, self.height, msg, color)
+
+    
 
 #############################################################################
 #                                                                           #
