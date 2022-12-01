@@ -832,7 +832,7 @@ class Boss(Character):
     def act(self, _: tuple):
         # todo : randomize the delay
         if self.fire_alarm.resetAlarm():
-            self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 3, DisplayManager.get_rectangle_image(8, 3), 3, SimpleDirection.RIGHT))
+            self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 2, None, 3, SimpleDirection.RIGHT))
 
         if self.check_collision(self.room.obj_player):
             # something more...?
@@ -939,6 +939,7 @@ class Bullet(GameObject):
         super().__init__(room, id, x, y, width, height, image)
         self.speed = speed
         self.dir = dir
+        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Bullet.png", 'rb')))
     
     '''
     def __del__(self):
@@ -965,6 +966,7 @@ class Laser(GameObject):
         super().__init__(room, id, x, y, width, height, image)
         self.speed = speed
         self.dir = dir
+        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Laser.png", 'rb')))
     
     def act(self, input_devices:tuple):
         self.move_by_dir(self.speed, self.dir)
