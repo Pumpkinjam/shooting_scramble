@@ -800,7 +800,7 @@ class Enemy(Character):
         # todo: motion for destructing
         if self.is_dropped():
             print('drop!')
-            self.room.create_object(Gold, (self.x, self.y, DisplayManager.get_rectangle_image(Gold.size, Gold.size, (255,255,50,100)), self.dir))
+            self.room.create_object(Gold, (self.center_x - Gold.size//2, self.center_y - Gold.size//2, DisplayManager.get_rectangle_image(Gold.size, Gold.size, (255,255,50,100)), self.dir))
             pass # generate gold, item, or else
             
     def destroy(self):
@@ -883,7 +883,7 @@ class Player(Character):
         pass
 
     def launch_projectile(self, dir):
-        i = self.room.create_object(Bullet, (*(self.center.to_tuple()), 4, 4, DisplayManager.get_rectangle_image(4, 4), 10, dir))
+        i = self.room.create_object(Bullet, (self.center_x-4, self.center_y-4, 8, 8, None, 10, dir))
 
     '''
     A : weapon -> attack, shield -> defense
