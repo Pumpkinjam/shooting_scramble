@@ -52,7 +52,7 @@ class GameManager:
         self.rm.create_room(self.screen_width, self.screen_height, game=True)
         self.rm.current_room.set_enemy_spawn_delay(3)
         self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100)) ))
-        self.boss = self.create(Boss, (0, 120, 30, 120, DisplayManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
+        self.boss = self.create(Boss, (0, 170, 30, 120, DisplayManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -456,13 +456,15 @@ class GameRoom(Room):
             spawn_x = 240
             spawn_y = 188
             move_dir = SimpleDirection.LEFT
+            enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_right.png", 'rb'))
 
             if random.random() < 0.4:
                 spawn_x = (self.obj_player.center_x + self.obj_player.x)//2
                 spawn_y = 0
                 move_dir = SimpleDirection.DOWN
+                enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_sky.png", 'rb'))
             
-            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, DisplayManager.get_rectangle_image(16,16), move_dir))
+            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, enemy_img, move_dir))
             #print(f'number of objects in this room : {len(self.objects)}')
             
 
@@ -762,6 +764,7 @@ class Gold(GameObject):
         # actually, speed and dir must not be None
         super().__init__(room, id, x, y, Gold.size, Gold.size, image)
         self.dir = dir
+        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_coin.png", 'rb')))
     
     def __del__(self):
         pass
@@ -824,6 +827,7 @@ class Boss(Character):
         super().__init__(room, id, x, y, width, height, image)
         self.am = AlarmManager()
         self.fire_alarm = self.am.new_alarm(5)
+        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Boss.png", 'rb')))
 
     def act(self, _: tuple):
         # todo : randomize the delay
@@ -853,7 +857,9 @@ class Player(Character):
     
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
-        self.heading = SimpleDirection.RIGHT
+        self.head(SimpleDirection.RIGHT)
+        #self.heading = SimpleDirection.RIGHT
+        #self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Player_right.png", 'rb')))
         #self.state
         #self.hp
 
@@ -887,22 +893,34 @@ class Player(Character):
     L : head the weapon/shield leftside, while pushing
     R : skill
     '''
+
+    def head(self, dir: SimpleDirection):
+        file_path = r"/home/kau-esw/esw/shooting_scramble/res/spr_Player_{}.png"
+        file_name_dir = {
+            SimpleDirection.UP : 'up',
+            SimpleDirection.LEFT : 'left',
+            SimpleDirection.RIGHT : 'right'
+        }
+
+        self.set_img(Image.open(open(file_path.format(file_name_dir[dir]), 'rb')))
+        self.heading = dir
+
     def command(self, input_sig: tuple):
         # default direction is right side.
         #print(self.heading)
         
         if ('U' not in input_sig) and ('L' not in input_sig):
-            self.heading = SimpleDirection.RIGHT
+            self.head(SimpleDirection.RIGHT)
 
         for cmd in input_sig:
             if cmd == 'A':
                 self.attack(self.heading)
             elif cmd == 'U':
-                self.heading = SimpleDirection.UP
+                self.head(SimpleDirection.UP)
             elif cmd == 'L':
-                self.heading = SimpleDirection.LEFT
+                self.head(SimpleDirection.LEFT)
             elif cmd == 'D':
-                self.heading = SimpleDirection.DOWN
+                #self.heading = SimpleDirection.DOWN
                 pass
             elif cmd == 'R':
                 pass
