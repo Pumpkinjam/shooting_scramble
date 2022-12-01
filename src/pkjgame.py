@@ -823,7 +823,7 @@ class Boss(Character):
     def __init__(self, room, id, x, y, width=30, height=120, image=None):
         super().__init__(room, id, x, y, width, height, image)
         self.am = AlarmManager()
-        self.fire_alarm = self.am.new_alarm(0.5)
+        self.fire_alarm = self.am.new_alarm(5)
 
     def act(self, _: tuple):
         # todo : randomize the delay
