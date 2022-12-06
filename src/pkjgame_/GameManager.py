@@ -26,7 +26,7 @@ class GameManager:
         self.rm.create_room(self.screen_width, self.screen_height, game=True)
         self.rm.current_room.set_enemy_spawn_delay(3)
         self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100)) ))
-        self.boss = self.create(Boss, (0, 120, 30, 120, DisplayeManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
+        self.boss = self.create(Boss, (0, 170, 30, 120, DisplayManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         

@@ -10,7 +10,7 @@ class Enemy(Character):
         # todo: motion for destructing
         if self.is_dropped():
             print('drop!')
-            self.room.create_object(Gold, (self.x, self.y, DisplayManager.get_rectangle_image(Gold.size, Gold.size, (255,255,50,100)), self.dir))
+            self.room.create_object(Gold, (self.center_x - Gold.size//2, self.center_y - Gold.size//2, None, self.dir))
             pass # generate gold, item, or else
             
     def destroy(self):
@@ -23,6 +23,10 @@ class Enemy(Character):
         if self.center.is_left_than(Pos(0, 0)):
             self.destroy()
 
+        if self.check_collision(self.room.obj_player):
+            self.room.obj_player.on_hit(3)
+            self.destroy()
+
     def is_dropped(self):
         return random.random() < self.drop_rate
 
@@ -31,14 +35,16 @@ class Boss(Character):
     
     def __init__(self, room, id, x, y, width=30, height=120, image=None):
         super().__init__(room, id, x, y, width, height, image)
-        self.fire_alarm = AlarmManager.new_alarm(5)
+        self.am = AlarmManager()
+        self.fire_alarm = self.am.new_alarm(5)
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/../res/spr_Boss.png", 'rb')))
 
     def act(self, _: tuple):
         # todo : randomize the delay
         if self.fire_alarm.resetAlarm():
-            self.room.create_object(Laser, (*(self.center.to_tuple()), 8, 3, DisplayManager.get_rectangle_image(8, 3), 3, SimpleDirection.RIGHT))
+            self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 2, None, 3, SimpleDirection.RIGHT))
 
         if self.check_collision(self.room.obj_player):
             # something more...?
-            self.room.del_object(self.room.obj_player)
-
+            print('oops')
+            self.room.obj_player.destroy()

@@ -6,7 +6,7 @@ class Player(Character):
     
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
-        self.heading = SimpleDirection.RIGHT
+        self.head(SimpleDirection.RIGHT)
         #self.state
         #self.hp
 
@@ -18,8 +18,9 @@ class Player(Character):
             if type(dev) == Controller:
                 self.command(dev.get_valid_input())
     
-    def on_hit(self):
-        # todo: on hit actions (move slightly to left)
+    def on_hit(self, dmg=1):
+        # todo: on hit actions
+        self.move(-dmg, 0)
         pass
 
     # if holding gun-type weapon... launch_projectile()
@@ -29,7 +30,7 @@ class Player(Character):
         pass
 
     def launch_projectile(self, dir):
-        i = self.room.create_object(Bullet, (*(self.center.to_tuple()), 4, 4, DisplayManager.get_rectangle_image(4, 4), 10, dir))
+        i = self.room.create_object(Bullet, (self.center_x-4, self.center_y-4, 8, 8, None, 10, dir))
 
     '''
     A : weapon -> attack, shield -> defense
@@ -39,22 +40,34 @@ class Player(Character):
     L : head the weapon/shield leftside, while pushing
     R : skill
     '''
+
+    def head(self, dir: SimpleDirection):
+        file_path = abspath(os.getcwd()) + r"/../res/spr_Player_{}.png"
+        file_name_dir = {
+            SimpleDirection.UP : 'up',
+            SimpleDirection.LEFT : 'left',
+            SimpleDirection.RIGHT : 'right'
+        }
+
+        self.set_img(Image.open(open(file_path.format(file_name_dir[dir]), 'rb')))
+        self.heading = dir
+
     def command(self, input_sig: tuple):
         # default direction is right side.
-        print(self.heading)
+        #print(self.heading)
         
         if ('U' not in input_sig) and ('L' not in input_sig):
-            self.heading = SimpleDirection.RIGHT
+            self.head(SimpleDirection.RIGHT)
 
         for cmd in input_sig:
             if cmd == 'A':
                 self.attack(self.heading)
             elif cmd == 'U':
-                self.heading = SimpleDirection.UP
+                self.head(SimpleDirection.UP)
             elif cmd == 'L':
-                self.heading = SimpleDirection.LEFT
+                self.head(SimpleDirection.LEFT)
             elif cmd == 'D':
-                self.heading = SimpleDirection.DOWN
+                #self.heading = SimpleDirection.DOWN
                 pass
             elif cmd == 'R':
                 pass

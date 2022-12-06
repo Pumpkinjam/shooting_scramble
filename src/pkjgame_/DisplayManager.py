@@ -65,12 +65,18 @@ class DisplayManager:
                 print()
                 raise Exception('DisplayManager.image_build() : given objects must be GameObject')
             else:
-                paper.paste(obj.img, (int(obj.x) - obj.width//2, int(obj.y) - obj.height//2), obj.img)
+                paper.paste(obj.img, (int(obj.x), int(obj.y)), obj.img)
         
         return paper
 
     @staticmethod
     def get_rectangle_image(width: int, height: int, color: tuple = (0,0,0)):
         rec = Image.new('RGBA', (width, height))
-        ImageDraw.Draw(rec).rectangle((0, 0, 32, 32), fill=color)
+        ImageDraw.Draw(rec).rectangle((0, 0, width, height), fill=color)
         return rec
+
+    @staticmethod
+    def get_text_image(width: int, height: int, msg: str, color: tuple = (0, 0, 0)):
+        txt = Image.new('RGBA', (width,height))
+        ImageDraw.Draw(txt).text((0, 0), msg, color)
+        return txt

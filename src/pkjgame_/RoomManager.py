@@ -37,19 +37,28 @@ class Room:
 
         self.objects[self.object_id] = obj
         
-        print(f'{cls} created.')
+        #print(f'{cls} created.')
         self.reset_image()
 
         if cls == Player:
             if self.obj_player is not None:
-                raise Exception("...but the Player already exists!")
+                raise Exception("the Player already exists!")
             else:
                 self.obj_player = obj
 
         return obj
     
     def del_object(self, obj):
-        del self.objects[obj.id]
+        if obj == self.obj_player:
+            raise GameManager.GameEndException('Game over.')
+        
+        try:
+            del self.objects[obj.id]
+        except:
+            print(f'KeyError : {obj.id}')
+            for k, v in self.objects.items():
+                print(k, v)
+        
         gc.collect()
         self.reset_image()
     
@@ -81,13 +90,15 @@ class GameRoom(Room):
             spawn_x = 240
             spawn_y = 188
             move_dir = SimpleDirection.LEFT
+            enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_right.png", 'rb'))
 
             if random.random() < 0.4:
-                spawn_x = 60
+                spawn_x = (self.obj_player.center_x + self.obj_player.x)//2
                 spawn_y = 0
                 move_dir = SimpleDirection.DOWN
+                enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_sky.png", 'rb'))
             
-            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, DisplayManager.get_rectangle_image(16,16), move_dir))
+            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, enemy_img, move_dir))
             #print(f'number of objects in this room : {len(self.objects)}')
             
 
@@ -152,8 +163,7 @@ class RoomManager:
 
     def goto_room(self, room=None, room_id=None):
         if (room is None and room_id is None): 
-            print('goto_room must have at least 1 arguments.')
-            raise Exception()
+            raise RoomManager.NoRoomException('goto_room must have at least 1 arguments.')
         
         if room_id is None:
             self.current_room = room

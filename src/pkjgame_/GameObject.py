@@ -22,15 +22,19 @@ class GameObject(metaclass=ABCMeta):
         self.id = id
         self.state = None
 
-        self.center = Pos(x+width//2, y+height//2)
-        self.x = self.center.x
-        self.y = self.center.y
+        self.center_x = x+width//2
+        self.center_y = y+height//2
+        self.center = Pos(self.center_x, self.center_y)
+
+        self.x = x
+        self.y = y
         self.width = width
         self.height = height
         self.outline = "#FFFFFF"
 
     def __del__(self):
-        print(f'{self}[{self.id}] destroyed.')
+        pass
+        #print(f'{self}[{self.id}] destroyed.')
 
     @abstractmethod
     def act(self, input_devices: tuple):
@@ -42,8 +46,10 @@ class GameObject(metaclass=ABCMeta):
     # if dir is not None, arguments x and y will be ignored
     def move(self, x=0, y=0):
         self.center.move(x, y)
-        self.x = self.center.x
-        self.y = self.center.y
+        self.x += x
+        self.y += y
+        self.center_x += x
+        self.center_y += y
 
     def move_by_dir(self, speed, dir):
         if dir == SimpleDirection.RIGHT:
@@ -64,8 +70,8 @@ class GameObject(metaclass=ABCMeta):
     
     def get_range(self) -> tuple:   # (Pos1, Pos2)
         return (
-            Pos(self.x - self.width/2, self.y - self.height/2), 
-            Pos(self.x + self.width/2, self.y + self.height/2)
+            Pos(self.x, self.y), 
+            Pos(self.x + self.width, self.y + self.height)
             )
     
     def is_in_range(self, ran: tuple):
@@ -78,7 +84,22 @@ class GameObject(metaclass=ABCMeta):
             )
 
     def check_collision(self, other):
-        return self.is_in_range(other.get_range())
+        return self.is_in_range(other.get_range()) or other.is_in_range(self.get_range())
     
     def set_img(self, img):
         self.img = img
+
+
+class TextView(GameObject):
+    
+    def __init__(self, room, id, x, y, width, height, image=None):
+        super().__init__(room, id, x, y, width, height, image)
+        
+    def act(self, _):
+        pass
+
+    def set_text(self, msg: str, color: tuple = None):
+        if msg is None: 
+            self.img = Image.new("RGBA", (width, height))
+        else:
+            self.img = DisplayManager.get_text_image(self.width, self.height, msg, color)

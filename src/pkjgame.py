@@ -8,6 +8,8 @@ from enum import Enum, auto
 import numpy as np
 from math import sqrt
 import csv
+import os
+from os.path import abspath
 
 from PIL import Image, ImageDraw, ImageFont
 import copy
@@ -764,7 +766,7 @@ class Gold(GameObject):
         # actually, speed and dir must not be None
         super().__init__(room, id, x, y, Gold.size, Gold.size, image)
         self.dir = dir
-        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_coin.png", 'rb')))
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/../res/spr_coin.png", 'rb')))
     
     def __del__(self):
         pass
@@ -800,7 +802,7 @@ class Enemy(Character):
         # todo: motion for destructing
         if self.is_dropped():
             print('drop!')
-            self.room.create_object(Gold, (self.center_x - Gold.size//2, self.center_y - Gold.size//2, DisplayManager.get_rectangle_image(Gold.size, Gold.size, (255,255,50,100)), self.dir))
+            self.room.create_object(Gold, (self.center_x - Gold.size//2, self.center_y - Gold.size//2, None, self.dir))
             pass # generate gold, item, or else
             
     def destroy(self):
@@ -827,7 +829,7 @@ class Boss(Character):
         super().__init__(room, id, x, y, width, height, image)
         self.am = AlarmManager()
         self.fire_alarm = self.am.new_alarm(5)
-        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Boss.png", 'rb')))
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/../res/spr_Boss.png", 'rb')))
 
     def act(self, _: tuple):
         # todo : randomize the delay
@@ -858,8 +860,6 @@ class Player(Character):
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
         self.head(SimpleDirection.RIGHT)
-        #self.heading = SimpleDirection.RIGHT
-        #self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Player_right.png", 'rb')))
         #self.state
         #self.hp
 
@@ -895,7 +895,7 @@ class Player(Character):
     '''
 
     def head(self, dir: SimpleDirection):
-        file_path = r"/home/kau-esw/esw/shooting_scramble/res/spr_Player_{}.png"
+        file_path = abspath(os.getcwd()) + r"/../res/spr_Player_{}.png"
         file_name_dir = {
             SimpleDirection.UP : 'up',
             SimpleDirection.LEFT : 'left',
@@ -939,7 +939,7 @@ class Bullet(GameObject):
         super().__init__(room, id, x, y, width, height, image)
         self.speed = speed
         self.dir = dir
-        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Bullet.png", 'rb')))
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/../res/spr_Bullet.png", 'rb')))
     
     '''
     def __del__(self):
@@ -966,7 +966,7 @@ class Laser(GameObject):
         super().__init__(room, id, x, y, width, height, image)
         self.speed = speed
         self.dir = dir
-        self.set_img(Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Laser.png", 'rb')))
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/../res/spr_Laser.png", 'rb')))
     
     def act(self, input_devices:tuple):
         self.move_by_dir(self.speed, self.dir)

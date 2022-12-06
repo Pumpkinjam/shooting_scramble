@@ -3,6 +3,7 @@ class Bullet(GameObject):
         super().__init__(room, id, x, y, width, height, image)
         self.speed = speed
         self.dir = dir
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/../res/spr_Bullet.png", 'rb')))
     
     '''
     def __del__(self):
@@ -18,7 +19,7 @@ class Bullet(GameObject):
         # wait, what...?
         for targ in list(self.room.objects.values()):
             
-            if type(targ) == Enemy and self.check_collision(targ):
+            if self.check_collision(targ) and type(targ) == Enemy:
                 print("Bullet hit!!")
                 targ.destroy()
                 self.destroy()
@@ -29,6 +30,7 @@ class Laser(GameObject):
         super().__init__(room, id, x, y, width, height, image)
         self.speed = speed
         self.dir = dir
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/../res/spr_Laser.png", 'rb')))
     
     def act(self, input_devices:tuple):
         self.move_by_dir(self.speed, self.dir)
