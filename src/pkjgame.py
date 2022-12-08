@@ -467,7 +467,7 @@ class GameRoom(Room):
     def objects_act(self, input_devices):
         super().objects_act(input_devices)
 
-        self.bg_offset += self.speed//3
+        self.bg_offset = (self.bg_offset + self.speed//2) % 960
         self.set_background(offset=(self.bg_offset, 0))
         
         if self.room_speed_alarm.resetAlarm():
@@ -828,7 +828,7 @@ class Enemy(Character):
         self.room.del_object(self)
     
     def act(self, input_devices: tuple):
-        self.move_by_dir(self.room.speed, self.dir)
+        self.move_by_dir(self.room.speed if (self.dir == SimpleDirection.DOWN) else self.room.speed * 2 - 1, self.dir)
 
         #print(self, self.center.is_left_than(Pos(0,0)))
         if self.center.is_left_than(Pos(0, 0)):
@@ -918,7 +918,8 @@ class Player(Character):
         file_name_dir = {
             SimpleDirection.UP : 'up',
             SimpleDirection.LEFT : 'left',
-            SimpleDirection.RIGHT : 'right'
+            SimpleDirection.RIGHT : 'right',
+            SimpleDirection.DOWN : 'down'
         }
 
         self.set_img(Image.open(open(file_path.format(file_name_dir[dir]), 'rb')))
@@ -939,7 +940,7 @@ class Player(Character):
             elif cmd == 'L':
                 self.head(SimpleDirection.LEFT)
             elif cmd == 'D':
-                #self.heading = SimpleDirection.DOWN
+                self.head(SimpleDirection.DOWN)
                 pass
             elif cmd == 'R':
                 pass
