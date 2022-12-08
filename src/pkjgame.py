@@ -375,11 +375,14 @@ class Room:
         self.height = room_height
         self.objects = objs        # keys: id (int), values: obj (GameObject)
         self.deleted = False
+
+        self.original_bg = bg
         if bg is None:
             self.background = Image.new("RGBA", (room_width, room_height))
             ImageDraw.Draw(self.background).rectangle((0, 0, room_width, room_height), (255,255,255,100))
         else:
-            self.background = bg
+            self.set_background(bg)
+
         self.image = copy.deepcopy(self.background)
 
         self.am = AlarmManager()
@@ -435,6 +438,16 @@ class Room:
 
     def get_image(self):
         return self.image
+
+    def set_background(self, new_bg=None, offset=(0,0)):
+        if new_bg is not None: self.original_bg = new_bg
+
+        left = offset[0]
+        upper = offset[1]
+        right = left+240
+        bottom = upper+240
+        self.background = self.original_bg.crop((left, upper, right, bottom))
+        
     
 
 class GameRoom(Room):
@@ -445,26 +458,32 @@ class GameRoom(Room):
         self.speed = 3
         self.enemy_spawn_alarm = self.am.new_alarm(self.enemy_spawn_delay)
 
+        self.bg_offset = 0
+        self.set_background(Image.open(open(abspath(os.getcwd()) + r"/res/background/bg_game.png", 'rb')))
+
         self.room_speed_alarm = self.am.new_alarm(5)
     
     
     def objects_act(self, input_devices):
         super().objects_act(input_devices)
+
+        self.bg_offset += self.speed//3
+        self.set_background(offset=(self.bg_offset, 0))
         
         if self.room_speed_alarm.resetAlarm():
-            self.speed += 0.5
+            self.speed += 1
         
         if self.enemy_spawn_alarm.resetAlarm():
             spawn_x = 240
             spawn_y = 188
             move_dir = SimpleDirection.LEFT
-            enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_right.png", 'rb'))
+            enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_right.png", 'rb'))
 
             if random.random() < 0.4:
                 spawn_x = (self.obj_player.center_x + self.obj_player.x)//2
                 spawn_y = 0
                 move_dir = SimpleDirection.DOWN
-                enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_sky.png", 'rb'))
+                enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_sky.png", 'rb'))
             
             i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, enemy_img, move_dir))
             #print(f'number of objects in this room : {len(self.objects)}')
