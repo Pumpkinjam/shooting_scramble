@@ -842,6 +842,10 @@ class Enemy(Character):
         return random.random() < self.drop_rate
 
 
+class Firing_Enemy(Enemy):
+    pass
+
+
 class Boss(Character):
     
     def __init__(self, room, id, x, y, width=30, height=120, image=None):
@@ -925,11 +929,11 @@ class Player(Character):
         self.set_img(Image.open(open(file_path.format(file_name_dir[dir]), 'rb')))
         self.heading = dir
 
+
+
     def command(self, input_sig: tuple):
         # default direction is right side.
-        #print(self.heading)
-        
-        if ('U' not in input_sig) and ('L' not in input_sig):
+        if ('U' not in input_sig) and ('L' not in input_sig) and ('D' not in input_sig):
             self.head(SimpleDirection.RIGHT)
 
         for cmd in input_sig:
