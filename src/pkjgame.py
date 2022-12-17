@@ -484,16 +484,14 @@ class GameRoom(Room):
             self.speed += 1
         
         if self.enemy_spawn_alarm.resetAlarm():
-            instance_class = Enemy
-            spawn_x = 240
-            spawn_y = (self.obj_player.center_y + self.obj_player.y) // 2
-            move_dir = SimpleDirection.LEFT
             enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_right.png", 'rb'))
+            enemy_speed = self.speed*2
 
             tmp = random.random()
             if tmp < 0.4:
                 instance_class = Firing_Enemy
                 spawn_x = 180
+                enemy_speed = 4
 
                 if tmp < 0.2:
                     spawn_y = 240
@@ -501,8 +499,13 @@ class GameRoom(Room):
                 else:
                     spawn_y = 0
                     move_dir = SimpleDirection.DOWN
-            
-            i = self.create_object(instance_class, (spawn_x, spawn_y, 16, 16, enemy_img, move_dir))
+            else:
+                instance_class = Enemy
+                spawn_x = 240
+                spawn_y = (self.obj_player.center_y + self.obj_player.y) // 2
+                move_dir = SimpleDirection.LEFT
+
+            i = self.create_object(instance_class, (spawn_x, spawn_y, 16, 16, enemy_speed, enemy_img, move_dir))
             #print(f'number of objects in this room : {len(self.objects)}')
             
 
@@ -871,10 +874,11 @@ class Gold(GameObject):
 
 class Enemy(Character):
     
-    def __init__(self, room, id, x, y, width=16, height=16, image=None, dir=SimpleDirection.LEFT):
+    def __init__(self, room, id, x, y, width=16, height=16, speed=1, image=None, dir=SimpleDirection.LEFT):
         super().__init__(room, id, x, y, width, height, image)
         #self.speed = self.room.speed
         self.dir = dir
+        self.speed = speed
         self.drop_rate = 0.2    # or else
 
     def __del__(self):
@@ -890,7 +894,7 @@ class Enemy(Character):
     
     def act(self, input_devices: tuple):
         super().act(input_devices)
-        self.move_by_dir(self.room.speed if (self.dir == SimpleDirection.DOWN) else self.room.speed * 2 - 1, self.dir)
+        self.move_by_dir(self.speed, self.dir)
 
         #print(self, self.center.is_left_than(Pos(0,0)))
         if self.center.is_left_than(Pos(0, 0)):
@@ -907,8 +911,8 @@ class Enemy(Character):
 # move downward, fire the laser, not dropping gold
 class Firing_Enemy(Enemy):
     
-    def __init__(self, room, id, x, y, width=16, height=16, image=None, dir=SimpleDirection.DOWN, firing_delay=0.8):
-        super().__init__(room, id, x, y, width, height, image, dir)
+    def __init__(self, room, id, x, y, width=16, height=16, speed=1, image=None, dir=SimpleDirection.DOWN, firing_delay=1):
+        super().__init__(room, id, x, y, width, height, speed, image, dir)
         self.firing_delay = firing_delay
         self.am = AlarmManager()
         self.fire_alarm = self.am.new_alarm(firing_delay)
@@ -976,6 +980,15 @@ class Player(Character):
         super().__init__(room, id, x, y, width, height, image)
         self.head(SimpleDirection.RIGHT)
         self.speed = 2
+
+        self.am = AlarmManager()
+        
+        self.magazine_capacity = 20
+        self.magazine_remain = 20
+        self.shoot_delay = 0.2
+        self.reload_delay = 2
+        self.shoot_alarm = self.am.new_alarm(self.shoot_delay)
+        self.reload_alarm = self.am.new_alarm(0.01)
         #self.state
         #self.hp
 
@@ -983,6 +996,9 @@ class Player(Character):
         raise GameManager.GameEndException('Game Over.')
 
     def act(self, input_devices):
+        if self.reload_alarm.isDone():
+            self.magazine_remain = self.magazine_capacity
+        
         for dev in input_devices:
             if type(dev) == Controller:
                 self.command(dev.get_valid_input())
@@ -992,16 +1008,30 @@ class Player(Character):
         self.move(-dmg, 0)
         pass
 
+    def reload(self):
+        if self.reload_alarm.unactivated:
+            print('reloading...')
+            self.reload_alarm.setClock(self.reload_delay)
+
     # if holding gun-type weapon... launch_projectile()
     # else... something
     def attack(self, dir):
-        self.launch_projectile(dir)
-        pass
+        print(self.reload_alarm.clock)
+        print(self.shoot_alarm.clock)
+        if self.magazine_remain > 0:
+            if self.reload_alarm.unactivated and self.shoot_alarm.resetAlarm():
+                self.magazine_remain -= 1
+                self.launch_projectile(dir)
+            elif not self.reload_alarm.unactivated:
+                print('cannot shoot : current reloading.')
+        else:
+            self.reload()
+        
 
     def launch_projectile(self, dir):
         i = self.room.create_object(Bullet, (self.center_x-4, self.center_y-4, 8, 8, None, 10, dir))
 
-    '''
+    ''' !! this manual is old-version
     A : weapon -> attack, shield -> defense
     B : pause  (not be processed here)
     U : head the weapon/shield upside, while pushing
@@ -1033,10 +1063,10 @@ class Player(Character):
             if cmd == 'A':
                 self.attack(self.heading)
             elif cmd == 'U':
-                self.head(SimpleDirection.UP)
+                #self.head(SimpleDirection.UP)
                 self.move_by_dir(self.speed, SimpleDirection.UP)
             elif cmd == 'L':
-                pass
+                self.reload()
             elif cmd == 'D':
                 self.move_by_dir(self.speed, SimpleDirection.DOWN)
                 pass
@@ -1073,10 +1103,13 @@ class Bullet(GameObject):
         # wait, what...?
         for targ in list(self.room.objects.values()):
             
-            if self.check_collision(targ) and type(targ) == Enemy:
-                print("Bullet hit!!")
-                targ.destroy()
-                self.destroy()
+            if self.check_collision(targ):
+                if type(targ) == Enemy:
+                    print("Bullet hit!!")
+                    targ.destroy()
+                    self.destroy()
+                elif type(targ) == Laser and not targ.reflected:
+                    targ.reflect()
 
 
 class Laser(GameObject):
@@ -1085,6 +1118,7 @@ class Laser(GameObject):
         self.speed = speed
         self.dir = dir
         self.set_img(Image.open(open(abspath(os.getcwd()) + r"/res/spr_Laser.png", 'rb')))
+        self.reflected = False
     
     def act(self, input_devices:tuple):
         self.move_by_dir(self.speed, self.dir)
@@ -1096,7 +1130,13 @@ class Laser(GameObject):
             print("Laser hit!!")
             self.room.obj_player.on_hit()
             self.destroy()
-                
+        
+    def reflect(self):
+        self.reflected = True
+        if random.random() < 0.5:
+            self.dir = SimpleDirection.RUP
+        else:
+            self.dir = SimpleDirection.RDOWN
 
 
 #############################################################################
