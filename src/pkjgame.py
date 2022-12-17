@@ -34,6 +34,8 @@ class GameManager:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.object_id = 0
+        
+        self.user_info = UserInfo()
 
 
     def start(self):
@@ -51,10 +53,10 @@ class GameManager:
         self.user = UserInfo()
         
         
-        self.rm.create_room(self.screen_width, self.screen_height, game=True)
+        self.rm.create_room(self.screen_width, self.screen_height, user_info=self.user_info, game=True)
         self.rm.current_room.set_enemy_spawn_delay(3)
         self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100)) ))
-        self.boss = self.create(Boss, (0, 170, 30, 120, DisplayManager.get_rectangle_image(30, 120, (255,0,0,100)) ))
+        self.boss = self.create(Boss, (0, 170, 40, 50, DisplayManager.get_rectangle_image(40, 50, (255,0,0,100)) ))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -169,7 +171,7 @@ class Pos:
 #                                                                           #
 # AlarmManager.py                                                           #
 #                                                                           #
-#############################################################################
+################################################################################
 
 class Alarm:
     '''
@@ -188,14 +190,14 @@ class Alarm:
         self.timing = self.start_time + self.clock
     
     # return if the valid alarm was done
-    def isDone(self) -> bool:
+    def isDone(self, unactivate=True) -> bool:
         #print(self.unactivated)
         if self.unactivated: return False
         self.clock = self.timing - time.time()
 
         if (self.clock <= 0):
             #print('Alarm Done!')
-            self.unactivated = True
+            self.unactivated = unactivate
             return True
         else:
             #print('wait...')
@@ -372,13 +374,15 @@ class DisplayManager:
 
 class Room:
     
-    def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
+    def __init__(self, id, room_width, room_height, user_info, bg=None, objs=dict()):
         self.id = id
         self.object_id = 0
         self.width = room_width
         self.height = room_height
         self.objects = objs        # keys: id (int), values: obj (GameObject)
         self.deleted = False
+
+        self.user_info = user_info
 
         self.original_bg = bg
         if bg is None:
@@ -455,16 +459,17 @@ class Room:
     
 
 class GameRoom(Room):
-    def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
-        super().__init__(id, room_width, room_height, bg, objs)
+    def __init__(self, id, room_width, room_height, user_info, bg=None, objs=dict()):
+        super().__init__(id, room_width, room_height, user_info, bg, objs)
 
         self.enemy_spawn_delay = 3
         self.speed = 3
         self.enemy_spawn_alarm = self.am.new_alarm(self.enemy_spawn_delay)
+        self.difficulty_alarm = self.am.new_alarm(20)
 
         self.bg_offset = 0
         self.set_background(Image.open(open(abspath(os.getcwd()) + r"/res/background/bg_game.png", 'rb')))
-        self.create_object(TextView, )
+        #todo: self.create_object(TextView, )
 
         self.room_speed_alarm = self.am.new_alarm(5)
     
@@ -479,18 +484,25 @@ class GameRoom(Room):
             self.speed += 1
         
         if self.enemy_spawn_alarm.resetAlarm():
+            instance_class = Enemy
             spawn_x = 240
             spawn_y = (self.obj_player.center_y + self.obj_player.y) // 2
             move_dir = SimpleDirection.LEFT
             enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_right.png", 'rb'))
 
-            if random.random() < 0.4:
-                spawn_x = (self.obj_player.center_x + self.obj_player.x)//2
-                spawn_y = 0
-                move_dir = SimpleDirection.DOWN
-                enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_sky.png", 'rb'))
+            tmp = random.random()
+            if tmp < 0.4:
+                instance_class = Firing_Enemy
+                spawn_x = 180
+
+                if tmp < 0.2:
+                    spawn_y = 240
+                    move_dir = SimpleDirection.UP
+                else:
+                    spawn_y = 0
+                    move_dir = SimpleDirection.DOWN
             
-            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, enemy_img, move_dir))
+            i = self.create_object(instance_class, (spawn_x, spawn_y, 16, 16, enemy_img, move_dir))
             #print(f'number of objects in this room : {len(self.objects)}')
             
 
@@ -512,7 +524,7 @@ class RoomManager:
         self.current_room = r
         '''
 
-    def create_room(self, room_width, room_height, objs=dict(), game=False):
+    def create_room(self, room_width, room_height, user_info, objs=dict(), game=False):
         self.number_rooms += 1
         self.current_id += 1
 
@@ -521,7 +533,7 @@ class RoomManager:
         else: 
             roomtype = Room
         
-        r = roomtype(self.current_id, room_width, room_height, objs=objs)
+        r = roomtype(self.current_id, room_width, room_height, user_info, objs=objs)
 
         if self.number_rooms == 1:
             self.first_room = r
@@ -577,39 +589,57 @@ class RoomManager:
 
 class UserInfo:
     
-    filename1 = 'playerInfo.sav'
-    filename2 = 'playerDat.sav'
+    filename1 = abspath(os.getcwd()) + '/playerInfo.sav'
+    filename2 = abspath(os.getcwd()) + '/playerInventory.sav'     # not used for now.
 
     def __init__(self):
-        self.gold = 0
         self.score = 0
+
+        if os.path.exists(UserInfo.filename1):
+            if not self.load_file():
+                print('load failed')
+            else: return
+        else:
+            print('savefile not found.')
+        
+        # initialization of load-failure case
+        self.gold = 0
         self.high_score = 0
         self.play_time = 0              # int
         self.init_time = time.time()    # float
         
-        self.inventory = dict()     # key: str (item's name), value: int (quantity)
-        self.item_set = dict()      # key: str (item's place), value: str (item's name)
+        #self.inventory = dict()     # key: str (item's name), value: int (quantity)
+        #self.item_set = dict()      # key: str (item's place), value: str (item's name)
+
+    def __del__(self):
+        self.save_file()
+        super().__del__()
 
     def load_file(self):
 
         with open(UserInfo.filename1, 'r') as f:
             vals = f.readline()
-            if not vals: return
+            if not vals: return False
 
-            vals = vals.split(', ')
-            self.gold = int(vals[0])
-            self.score = int(vals[1])
-            self.high_score = int(vals[2])
-            self.play_time = int(vals[3])
+            try:
+                vals = vals.split(', ')
+                self.gold = int(vals[0])
+                self.high_score = int(vals[1])
+                self.play_time = int(vals[2])
+            except:
+                return False
         
+        '''
         # save inventory data
         with open(UserInfo.filename2, 'r') as f:
             if f.readline() is not line: return
 
             r = csv.reader(f)
             self.inventory = dict(zip(r[0], r[1]))
-            
+        '''
+
         print('load complete')
+        return True
     
 
     def save_file(self):
@@ -617,18 +647,18 @@ class UserInfo:
         self.play_time += int(time.time() - self.init_time)
         with open(UserInfo.filename1, 'w') as f:
             f.write(self.to_csv_format)
-        
+        '''
         with open(UserInfo.filename2, 'w') as f:
             w = csv.writer(f)
             w.writerow(self.inventory.keys())
             w.writerow(self.inventory.values())
-
+        '''
         print('save complete.')
             
     
-    # gold, score, high_score, play_time
+    # gold, high_score, play_time
     def to_csv_format(self):
-        return f'{self.gold}, {self.score}, {self.high_score}, {self.play_time}'
+        return f'{self.gold}, {self.high_score}, {self.play_time}'
     
     def playtime_to_string(self):
         tmp = self.play_time
@@ -729,9 +759,11 @@ class GameObject(metaclass=ABCMeta):
             raise Exception('Unknown SimpleDirection')
         
     def move_to(self, x, y):
-        self.center.move_to(x, y)
-        self.x = self.center.x
-        self.y = self.center.y
+        self.x = x
+        self.y = y
+        self.center_x = x+width//2
+        self.center_y = y+height//2
+        self.center = Pos(self.center_x, self.center_y)
     
     def get_range(self) -> tuple:   # (Pos1, Pos2)
         return (
@@ -780,12 +812,22 @@ class TextView(GameObject):
 #############################################################################
 
 
-# All Characters (Player, Enemy) must be extended by this class
+# All Characters (Player, Enemy, ...) must be extended by this class
 class Character(GameObject):
     
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
+        self.shadow = self.get_range()
 
+    def act(self, input_devices: tuple):
+        self.shadow = self.get_range()
+
+    def check_collision(self, other):
+        res =  self.is_in_range(other.get_range()) or other.is_in_range(other.get_range()) or other.is_in_range(self.shadow)
+        if other is Character:
+            res = res or self.is_in_Range(other.shadow)
+        
+        return res
 
 #############################################################################
 #                                                                           #
@@ -807,6 +849,8 @@ class Gold(GameObject):
         #print("gold get!")
 
     def act(self, _):
+        super().act(_)
+
         self.move_by_dir(self.room.speed, self.dir)
 
         if self.center.is_left_than(Pos(0, 0)):
@@ -830,10 +874,11 @@ class Enemy(Character):
         super().__init__(room, id, x, y, width, height, image)
         #self.speed = self.room.speed
         self.dir = dir
-        self.drop_rate = 0.9    # or else
+        self.drop_rate = 0.2    # or else
 
     def __del__(self):
         # todo: motion for destructing
+        self.room.user_info.score += 5
         if self.is_dropped():
             print('drop!')
             self.room.create_object(Gold, (self.center_x - Gold.size//2, self.center_y - Gold.size//2, None, self.dir))
@@ -843,6 +888,7 @@ class Enemy(Character):
         self.room.del_object(self)
     
     def act(self, input_devices: tuple):
+        super().act(input_devices)
         self.move_by_dir(self.room.speed if (self.dir == SimpleDirection.DOWN) else self.room.speed * 2 - 1, self.dir)
 
         #print(self, self.center.is_left_than(Pos(0,0)))
@@ -857,22 +903,52 @@ class Enemy(Character):
         return random.random() < self.drop_rate
 
 
+# move downward, fire the laser, not dropping gold
 class Firing_Enemy(Enemy):
-    pass
+    
+    def __init__(self, room, id, x, y, width=16, height=16, image=None, dir=SimpleDirection.DOWN, firing_delay=3):
+        super().__init__(room, id, x, y, width, height, image, dir)
+        self.firing_delay = firing_delay
+        self.am = AlarmManager()
+        self.fire_alarm = am.new_alarm(firing_delay)
+
+    def act(self, _):
+        super().act(_)
+        if self.fire_alarm.resetAlarm():
+            self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 2, None, 3, SimpleDirection.LEFT))
 
 
+#todo: this class shouldn't be in Enemy.py
 class Boss(Character):
     
     def __init__(self, room, id, x, y, width=30, height=120, image=None):
         super().__init__(room, id, x, y, width, height, image)
+        self.speed = 1
         self.am = AlarmManager()
-        self.fire_alarm = self.am.new_alarm(5)
+        self.chase_alarm = self.am.new_alarm(1)
         self.set_img(Image.open(open(abspath(os.getcwd()) + r"/res/spr_Boss.png", 'rb')))
 
-    def act(self, _: tuple):
-        # todo : randomize the delay
+    def __del__(self):
+        self.room.user_info.score += 20
+
+    def act(self, input_devices: tuple):
+        super().act(input_devices)
+
+        if self.chase_alarm.isDone(unactivate=False): 
+            #for but in input_devices[0].get_valid_input:
+            #   if but in ('A', 'B'): continue
+            player_pos = self.room.obj_player.center
+
+            if player_pos.is_above_than(self.center):
+                self.move_by_dir(self.speed, SimpleDirection.UP)
+            elif player_pos.is_below_than(self.center):
+                self.move_by_dir(self.speed, SimpleDirection.DOWN)
+            else: self.chase_alarm.resetAlarm()
+        
+        ''' ## Boss is no longer enemy!
         if self.fire_alarm.resetAlarm():
             self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 2, None, 3, SimpleDirection.RIGHT))
+        '''
 
         if self.check_collision(self.room.obj_player):
             # something more...?
