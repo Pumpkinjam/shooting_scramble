@@ -646,7 +646,7 @@ class UserInfo:
 
         self.play_time += int(time.time() - self.init_time)
         with open(UserInfo.filename1, 'w') as f:
-            f.write(self.to_csv_format)
+            f.write(self.to_csv_format())
         '''
         with open(UserInfo.filename2, 'w') as f:
             w = csv.writer(f)
@@ -857,7 +857,8 @@ class Gold(GameObject):
             self.destroy()
         
         if self.check_collision(self.room.obj_player):
-            print("gold++;") # todo
+            print(f"gold++; current : {self.room.user_info.gold}")
+            self.room.user_info.gold += 1
             self.destroy()
 
 
@@ -906,16 +907,16 @@ class Enemy(Character):
 # move downward, fire the laser, not dropping gold
 class Firing_Enemy(Enemy):
     
-    def __init__(self, room, id, x, y, width=16, height=16, image=None, dir=SimpleDirection.DOWN, firing_delay=3):
+    def __init__(self, room, id, x, y, width=16, height=16, image=None, dir=SimpleDirection.DOWN, firing_delay=0.8):
         super().__init__(room, id, x, y, width, height, image, dir)
         self.firing_delay = firing_delay
         self.am = AlarmManager()
-        self.fire_alarm = am.new_alarm(firing_delay)
+        self.fire_alarm = self.am.new_alarm(firing_delay)
 
     def act(self, _):
         super().act(_)
         if self.fire_alarm.resetAlarm():
-            self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 2, None, 3, SimpleDirection.LEFT))
+            self.room.create_object(Laser, (self.center_x, self.center_y, 8, 2, None, 3, SimpleDirection.LEFT))
 
 
 #todo: this class shouldn't be in Enemy.py
