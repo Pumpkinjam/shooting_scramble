@@ -475,7 +475,7 @@ class GameRoom(Room):
         
         if self.enemy_spawn_alarm.resetAlarm():
             spawn_x = 240
-            spawn_y = 188
+            spawn_y = (self.obj_player.center_y + self.obj_player.y) // 2
             move_dir = SimpleDirection.LEFT
             enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_right.png", 'rb'))
 
@@ -883,6 +883,7 @@ class Player(Character):
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
         self.head(SimpleDirection.RIGHT)
+        self.speed = 2
         #self.state
         #self.hp
 
@@ -941,10 +942,11 @@ class Player(Character):
                 self.attack(self.heading)
             elif cmd == 'U':
                 self.head(SimpleDirection.UP)
+                self.move_by_dir(self.speed, SimpleDirection.UP)
             elif cmd == 'L':
-                self.head(SimpleDirection.LEFT)
+                pass
             elif cmd == 'D':
-                self.head(SimpleDirection.DOWN)
+                self.move_by_dir(self.speed, SimpleDirection.DOWN)
                 pass
             elif cmd == 'R':
                 pass
