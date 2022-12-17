@@ -1,8 +1,10 @@
-blend white to background image (for visualizing)
+text printing
 enemy item drop
 menu ui
-boss <=> laser interaction
 
+need test
+-- blend white to background image (for visualizing) --
+-- boss <=> laser interaction --
 
 done 
 -- player bullet reload system --
