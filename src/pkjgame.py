@@ -108,6 +108,10 @@ class SimpleDirection(Enum):
     UP = auto()
     LEFT = auto()
     DOWN = auto()
+    LDOWN = auto()
+    RDOWN = auto()
+    LUP = auto()
+    RUP = auto()
 
 
 #############################################################################
@@ -460,6 +464,7 @@ class GameRoom(Room):
 
         self.bg_offset = 0
         self.set_background(Image.open(open(abspath(os.getcwd()) + r"/res/background/bg_game.png", 'rb')))
+        self.create_object(TextView, )
 
         self.room_speed_alarm = self.am.new_alarm(5)
     
@@ -475,7 +480,7 @@ class GameRoom(Room):
         
         if self.enemy_spawn_alarm.resetAlarm():
             spawn_x = 240
-            spawn_y = 188
+            spawn_y = (self.obj_player.center_y + self.obj_player.y) // 2
             move_dir = SimpleDirection.LEFT
             enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_right.png", 'rb'))
 
@@ -712,6 +717,14 @@ class GameObject(metaclass=ABCMeta):
             self.move(0, -speed)
         elif dir == SimpleDirection.DOWN:
             self.move(0, speed)
+        elif dir == SimpleDirection.RDOWN:
+            self.move(speed, speed)
+        elif dir == SimpleDirection.RUP:
+            self.move(speed, -speed)
+        elif dir == SimpleDirection.LDOWN:
+            self.move(-speed, speed)
+        elif dir == SimpleDirection.LUP:
+            self.move(-speed, -speed)
         else:
             raise Exception('Unknown SimpleDirection')
         
@@ -744,15 +757,17 @@ class GameObject(metaclass=ABCMeta):
 
 class TextView(GameObject):
     
-    def __init__(self, room, id, x, y, width, height, image=None):
+    def __init__(self, room, id, x, y, width, height, image=None, text=None):
         super().__init__(room, id, x, y, width, height, image)
+        self.text = text
         
     def act(self, _):
         pass
 
     def set_text(self, msg: str, color: tuple = None):
+        self.text = msg
         if msg is None: 
-            self.img = Image.new("RGBA", (width, height))
+            self.img = Image.new("RGBA", (self.width, self.height))
         else:
             self.img = DisplayManager.get_text_image(self.width, self.height, msg, color)
 
@@ -883,6 +898,7 @@ class Player(Character):
     def __init__(self, room, id, x, y, width, height, image=None):
         super().__init__(room, id, x, y, width, height, image)
         self.head(SimpleDirection.RIGHT)
+        self.speed = 2
         #self.state
         #self.hp
 
@@ -941,10 +957,11 @@ class Player(Character):
                 self.attack(self.heading)
             elif cmd == 'U':
                 self.head(SimpleDirection.UP)
+                self.move_by_dir(self.speed, SimpleDirection.UP)
             elif cmd == 'L':
-                self.head(SimpleDirection.LEFT)
+                pass
             elif cmd == 'D':
-                self.head(SimpleDirection.DOWN)
+                self.move_by_dir(self.speed, SimpleDirection.DOWN)
                 pass
             elif cmd == 'R':
                 pass
