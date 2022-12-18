@@ -15,14 +15,14 @@ class Alarm:
         self.timing = self.start_time + self.clock
     
     # return if the valid alarm was done
-    def isDone(self) -> bool:
+    def isDone(self, unactivate=True) -> bool:
         #print(self.unactivated)
         if self.unactivated: return False
         self.clock = self.timing - time.time()
 
         if (self.clock <= 0):
             #print('Alarm Done!')
-            self.unactivated = True
+            self.unactivated = unactivate
             return True
         else:
             #print('wait...')
@@ -56,7 +56,7 @@ class Alarm:
         if new_time is not None:
             self.set_time = new_time
             self.clock = new_time
-            self.timing = self.started_time + self.new_time
+            self.timing = self.started_time + new_time
         else:
             self.clock = self.set_time
             self.timing = self.started_time + self.set_time
@@ -73,6 +73,7 @@ class AlarmManager:
         # self.threads = dict()
     
     def new(self, t=-1): return self.new_alarm(t)
+
     def new_alarm(self, t=-1) -> Alarm:
         self.current_id += 1
         return self._new_alarm(self.current_id, t)

@@ -1,22 +1,28 @@
 class Room:
     
-    def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
+    def __init__(self, id, room_width, room_height, user_info, bg=None, objs=dict()):
         self.id = id
         self.object_id = 0
         self.width = room_width
         self.height = room_height
         self.objects = objs        # keys: id (int), values: obj (GameObject)
         self.deleted = False
+
+        self.user_info = user_info
+
+        self.original_bg = bg
         if bg is None:
             self.background = Image.new("RGBA", (room_width, room_height))
             ImageDraw.Draw(self.background).rectangle((0, 0, room_width, room_height), (255,255,255,100))
         else:
-            self.background = bg
+            self.set_background(bg)
+
         self.image = copy.deepcopy(self.background)
 
         self.am = AlarmManager()
         
         self.obj_player = None  # not None only in the GameRoom
+        self.obj_boss = None    # too
 
         self.reset_image()
 
@@ -31,13 +37,13 @@ class Room:
 
     # makes object with room, id
     def create_object(self, cls: type, args: tuple):
+        #print(f'creating {cls}')
 
         self.object_id += 1
         obj = cls(self, self.object_id, *args)
 
         self.objects[self.object_id] = obj
         
-        #print(f'{cls} created.')
         self.reset_image()
 
         if cls == Player:
@@ -45,6 +51,12 @@ class Room:
                 raise Exception("the Player already exists!")
             else:
                 self.obj_player = obj
+
+        if cls == Boss:
+            if self.obj_boss is not None:
+                raise Exception("the Boss already exists!")
+            else:
+                self.obj_boss = obj
 
         return obj
     
@@ -67,40 +79,89 @@ class Room:
 
     def get_image(self):
         return self.image
+
+    def set_background(self, new_bg=None, offset=(0,0)):
+        if new_bg is not None: self.original_bg = new_bg
+
+        left = offset[0]
+        upper = offset[1]
+        right = left+240
+        bottom = upper+240
+        self.background = self.original_bg.crop((left, upper, right, bottom))
+        
     
 
 class GameRoom(Room):
-    def __init__(self, id, room_width, room_height, bg=None, objs=dict()):
-        super().__init__(id, room_width, room_height, bg, objs)
+    def __init__(self, id, room_width, room_height, user_info, bg=None, objs=dict()):
+        super().__init__(id, room_width, room_height, user_info, bg, objs)
 
-        self.enemy_spawn_delay = 3
+        self.enemy_spawn_delay = 5
         self.speed = 3
         self.enemy_spawn_alarm = self.am.new_alarm(self.enemy_spawn_delay)
+
+        self.bg_offset = 0
+        self.set_background(Image.open(open(abspath(os.getcwd()) + r"/res/background/bg_game_blended.png", 'rb')))
 
         self.room_speed_alarm = self.am.new_alarm(5)
     
     
     def objects_act(self, input_devices):
         super().objects_act(input_devices)
+
+        self.bg_offset = (self.bg_offset + self.speed//2) % 960
+        self.set_background(offset=(self.bg_offset, 0))
         
         if self.room_speed_alarm.resetAlarm():
             self.speed += 0.5
         
-        if self.enemy_spawn_alarm.resetAlarm():
-            spawn_x = 240
-            spawn_y = 188
-            move_dir = SimpleDirection.LEFT
-            enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_right.png", 'rb'))
-
-            if random.random() < 0.4:
-                spawn_x = (self.obj_player.center_x + self.obj_player.x)//2
-                spawn_y = 0
-                move_dir = SimpleDirection.DOWN
-                enemy_img = Image.open(open(r"/home/kau-esw/esw/shooting_scramble/res/spr_Mob_from_sky.png", 'rb'))
-            
-            i = self.create_object(Enemy, (spawn_x, spawn_y, 16, 16, enemy_img, move_dir))
+        if self.enemy_spawn_alarm.resetAlarm(2 if self.speed > 10 else (5 - self.speed * 3 / 10)):
+            self.spawn_enemy()
             #print(f'number of objects in this room : {len(self.objects)}')
-            
+    
+    def spawn_enemy(self):
+        enemy_img = Image.open(open(abspath(os.getcwd()) + r"/res/spr_Mob_from_right.png", 'rb'))
+        enemy_speed = self.speed*1.2
+
+        tmp = random.random()
+
+        if tmp < 0.4:
+            instance_class = Firing_Enemy
+            enemy_speed = 4
+
+            if tmp < 0.15:      # down -> up
+                spawn_x = 180
+                spawn_y = 240
+                move_dir = SimpleDirection.UP
+
+            elif tmp < 0.3:     # up -> down
+                spawn_x = 180
+                spawn_y = -16
+                move_dir = SimpleDirection.DOWN
+
+            elif tmp < 0.35:    # -> ldwon
+                spawn_x = 240
+                spawn_y = 0
+                enemy_speed = 3
+                move_dir = SimpleDirection.LDOWN
+
+            else:               # -> lup
+                spawn_x = 240
+                spawn_y = 240
+                enemy_speed = 3
+                move_dir = SimpleDirection.LUP
+
+        else:                   # right -> left
+            instance_class = Enemy
+            spawn_x = 240
+            spawn_y = (self.obj_player.center_y + self.obj_player.y) // 2 + random.randint(-5, 5)
+            move_dir = SimpleDirection.LEFT
+
+            if tmp > 0.95:      # in-formation
+                enemy_speed //= 4
+                self.create_object(instance_class, (spawn_x-16, spawn_y-20, 16, 16, enemy_speed//4, enemy_img, move_dir))
+                self.create_object(instance_class, (spawn_x+16, spawn_y+20, 16, 16, enemy_speed//4, enemy_img, move_dir))
+
+        self.create_object(instance_class, (spawn_x, spawn_y, 16, 16, enemy_speed, enemy_img, move_dir))
 
     def set_enemy_spawn_delay(self, new_delay: int):
         self.enemy_spawn_delay = new_delay
@@ -120,7 +181,7 @@ class RoomManager:
         self.current_room = r
         '''
 
-    def create_room(self, room_width, room_height, objs=dict(), game=False):
+    def create_room(self, room_width, room_height, user_info, objs=dict(), game=False):
         self.number_rooms += 1
         self.current_id += 1
 
@@ -129,7 +190,7 @@ class RoomManager:
         else: 
             roomtype = Room
         
-        r = roomtype(self.current_id, room_width, room_height, objs=objs)
+        r = roomtype(self.current_id, room_width, room_height, user_info, objs=objs)
 
         if self.number_rooms == 1:
             self.first_room = r

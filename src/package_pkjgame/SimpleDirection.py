@@ -5,3 +5,7 @@ class SimpleDirection(Enum):
     UP = auto()
     LEFT = auto()
     DOWN = auto()
+    LDOWN = auto()
+    RDOWN = auto()
+    LUP = auto()
+    RUP = auto()

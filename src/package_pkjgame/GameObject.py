@@ -17,6 +17,9 @@ class GameObject(metaclass=ABCMeta):
             self.img = image
         else:
             self.img = Image.new("RGBA", (width, height))
+
+        self.original_img = self.img
+        self.visiblity = True
         
         self.room = room
         self.id = id
@@ -60,13 +63,26 @@ class GameObject(metaclass=ABCMeta):
             self.move(0, -speed)
         elif dir == SimpleDirection.DOWN:
             self.move(0, speed)
+        elif dir == SimpleDirection.RDOWN:
+            self.move(speed, speed)
+        elif dir == SimpleDirection.RUP:
+            self.move(speed, -speed)
+        elif dir == SimpleDirection.LDOWN:
+            self.move(-speed, speed)
+        elif dir == SimpleDirection.LUP:
+            self.move(-speed, -speed)
         else:
             raise Exception('Unknown SimpleDirection')
         
     def move_to(self, x, y):
-        self.center.move_to(x, y)
-        self.x = self.center.x
-        self.y = self.center.y
+        self.x = x
+        self.y = y
+        self.center_x = self.x + self.width//2
+        self.center_y = self.y + self.height//2
+        self.center = Pos(self.center_x, self.center_y)
+        
+    def set_visiblity(self, visiblity: bool):
+        self.visiblity = visiblity
     
     def get_range(self) -> tuple:   # (Pos1, Pos2)
         return (
@@ -88,18 +104,3 @@ class GameObject(metaclass=ABCMeta):
     
     def set_img(self, img):
         self.img = img
-
-
-class TextView(GameObject):
-    
-    def __init__(self, room, id, x, y, width, height, image=None):
-        super().__init__(room, id, x, y, width, height, image)
-        
-    def act(self, _):
-        pass
-
-    def set_text(self, msg: str, color: tuple = None):
-        if msg is None: 
-            self.img = Image.new("RGBA", (width, height))
-        else:
-            self.img = DisplayManager.get_text_image(self.width, self.height, msg, color)

@@ -70,13 +70,13 @@ class DisplayManager:
         return paper
 
     @staticmethod
-    def get_rectangle_image(width: int, height: int, color: tuple = (0,0,0)):
+    def get_rectangle_image(width: int, height: int, color: tuple = (0,0,0,255)):
         rec = Image.new('RGBA', (width, height))
         ImageDraw.Draw(rec).rectangle((0, 0, width, height), fill=color)
         return rec
 
     @staticmethod
-    def get_text_image(width: int, height: int, msg: str, color: tuple = (0, 0, 0)):
-        txt = Image.new('RGBA', (width,height))
-        ImageDraw.Draw(txt).text((0, 0), msg, color)
+    def get_text_image(width: int, height: int, msg: str, color: tuple = (0,255,0)):
+        txt = DisplayManager.get_rectangle_image(width, height, (20,20,20,50))
+        ImageDraw.Draw(txt).text((2, 2), msg, color)
         return txt
