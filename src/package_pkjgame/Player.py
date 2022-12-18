@@ -30,6 +30,9 @@ class Player(Character):
         for dev in input_devices:
             if type(dev) == Controller:
                 self.command(dev.get_valid_input())
+
+        if self.y<0: self.move_to(self.x, 0)
+        if self.y>208: self.move_to(self.x, 208)
     
     def on_hit(self, dmg=1):
         # todo: on hit actions
