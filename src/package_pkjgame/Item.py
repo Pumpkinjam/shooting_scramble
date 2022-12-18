@@ -23,7 +23,7 @@ class Item(GameObject):
         if (tmp < 0.2):     # 20% - player movement to right
             print('player acceleration')
             for i in range(3):
-                self.room.obj_player.move_by_dir(2, SimpleDirection.RIGHT)
+                self.room.obj_player.move_by_dir(1, SimpleDirection.RIGHT)
         elif tmp < 0.4:     # 20% - boss heal by half-hp
             print('boss heal')
             self.room.obj_boss.hp.heal(self.room.obj_boss.hp.max_hp // 2)
@@ -32,15 +32,14 @@ class Item(GameObject):
             for obj in list(self.room.objects.values()):
                 if isinstance(obj, Laser):
                     self.room.del_object(obj)
-        elif tmp < 0.8:     # 20% - launch bullets to all directions, twice.
+        elif tmp < 0.8:     # 20% - launch bullets to all directions
             print('bullet storm')
-            for dir in SimpleDirection:
-                self.room.obj_player.launch_projectile(dir)
-            
             for dir in SimpleDirection:
                 self.room.obj_player.launch_projectile(dir)
         else:               # that's unlucky
             print('lose...')
+
+        self.destroy()
 
 
 class Gold(Item):
