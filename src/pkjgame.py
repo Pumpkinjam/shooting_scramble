@@ -967,7 +967,7 @@ class Enemy(Character):
         #self.speed = self.room.speed
         self.dir = dir
         self.speed = speed
-        self.item_rate = 0.9    # item first. gold drops only when item was not dropped.
+        self.item_rate = 0.1    # item first. gold drops only when item was not dropped.
         self.drop_rate = 0.2    # or else
 
     def __del__(self):
