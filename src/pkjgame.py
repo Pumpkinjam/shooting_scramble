@@ -469,7 +469,7 @@ class GameRoom(Room):
 
         self.bg_offset = 0
         self.set_background(Image.open(open(abspath(os.getcwd()) + r"/res/background/bg_game.png", 'rb')))
-        todo: self.create_object(TextView, (0, 0, 80, 30, None, f'score : {self.user_info.score}', (255,255,255)))
+        self.create_object(TextView, (0, 0, 80, 30, None, f'score : {self.user_info.score}', (255,255,255)))
 
         self.room_speed_alarm = self.am.new_alarm(5)
     
