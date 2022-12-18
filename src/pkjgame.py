@@ -41,7 +41,6 @@ class GameManager:
         self.manage()
 
     def stop(self, msg='Game Stopped.'):
-        self.user_info.save_file()
         raise GameManager.GameEndException(msg)
 
     def setup(self):
@@ -51,12 +50,17 @@ class GameManager:
         self.joystick = Controller()
         self.user_info = UserInfo()
         
+        print(f'best = {self.user_info.high_score}')
+        print(f'play time = {self.user_info.play_time}')
+        
         
         self.rm.create_room(self.screen_width, self.screen_height, user_info=self.user_info, game=True)
         self.rm.current_room.set_enemy_spawn_delay(3)
         self.player = self.create(Player, (60, 180, 32, 32, DisplayManager.get_rectangle_image(32, 32, (50,255,50,100)) ))
         self.boss = self.create(Boss, (0, 170, 40, 50, DisplayManager.get_rectangle_image(40, 50, (255,0,0,100)) ))
-        self.score_view = self.create(TextView, (0, 0, 80, 30, None, f'score : {self.user_info.score}', (255,255,255)))
+
+        self.score_text = 'score : {}\nbest : {}'
+        self.score_view = self.create(TextView, (0, 0, 80, 30, None, self.score_text.format(self.user_info.score, self.user_info.high_score), (255,255,255)))
 
         self.fps_alarm = self.am.new_alarm(self.spf)
         
@@ -64,27 +68,29 @@ class GameManager:
 
     def manage(self):
         i=0
-        while True:
-            if ('B' in self.joystick.get_valid_input()): 
-                print('Game End By B key')
-                for x in range(230, -1, -10):
-                    self.rm.current_room.create_object(Character, (x, 0, 10, 240, DisplayManager.get_rectangle_image(10, 240, (0,0,0,255))))
+        try:
+            while True:
+                if ('B' in self.joystick.get_valid_input()): 
+                    print('Game End By B key')
+                    raise GameManager.GameEndException('Game Ended.')
+
+                i += 1
+                self.rm.current_room.objects_act((self.joystick,))  # every objects in the room acts
+                                                                    # use joystick if it's needed
+                # codes in this block are called by fps (every 33ms)
+                if self.fps_alarm.resetAlarm():
+                    self.score_view.set_text(self.score_text.format(self.user_info.score, self.user_info.high_score))
+                    '''
+                    for t in self.rm.current_room.objects.values():
+                        print(type(t))info.score}')
+                    '''
+                    #self.print_debug()
                     self.disp()
-                break
-
-            i += 1
-            self.rm.current_room.objects_act((self.joystick,))  # every objects in the room acts
-                                                                # use joystick if it's needed
-            
-            # codes in this block are called by fps (every 33ms)
-            if self.fps_alarm.resetAlarm():
-                '''
-                for t in self.rm.current_room.objects.values():
-                    print(type(t))info.score}')
-                '''
-                #self.print_debug()
+        except GameManager.GameEndException:
+            for x in range(230, -1, -10):
+                self.rm.current_room.create_object(Character, (x, 0, 10, 240, DisplayManager.get_rectangle_image(10, 240, (0,0,0,255))))
                 self.disp()
-
+            self.user_info.save_file()
 
     def create(self, cls: type, args: tuple):
         return self.rm.current_room.create_object(cls, args)
@@ -367,8 +373,7 @@ class DisplayManager:
 
     @staticmethod
     def get_text_image(width: int, height: int, msg: str, color: tuple = (0,255,0)):
-        #txt = DisplayManager.get_rectangle_image(width, height, (255,255,255,100))
-        txt = Image.new('RGBA', (width, height))
+        txt = DisplayManager.get_rectangle_image(width, height, (20,20,20,50))
         ImageDraw.Draw(txt).text((2, 2), msg, color)
         return txt
 
@@ -404,6 +409,7 @@ class Room:
         self.am = AlarmManager()
         
         self.obj_player = None  # not None only in the GameRoom
+        self.obj_boss = None    # too
 
         self.reset_image()
 
@@ -418,7 +424,7 @@ class Room:
 
     # makes object with room, id
     def create_object(self, cls: type, args: tuple):
-        print(f'creating {cls}')
+        #print(f'creating {cls}')
 
         self.object_id += 1
         obj = cls(self, self.object_id, *args)
@@ -432,6 +438,12 @@ class Room:
                 raise Exception("the Player already exists!")
             else:
                 self.obj_player = obj
+
+        if cls == Boss:
+            if self.obj_boss is not None:
+                raise Exception("the Boss already exists!")
+            else:
+                self.obj_boss = obj
 
         return obj
     
@@ -498,7 +510,7 @@ class GameRoom(Room):
         enemy_speed = self.speed*1.2
 
         tmp = random.random()
-        
+
         if tmp < 0.4:
             instance_class = Firing_Enemy
             enemy_speed = 4
@@ -626,6 +638,7 @@ class UserInfo:
 
     def __init__(self):
         self.score = 0
+        self.init_time = time.time()    # float
 
         if os.path.exists(UserInfo.filename1):
             if self.load_file():
@@ -639,7 +652,6 @@ class UserInfo:
         self.gold = 0
         self.high_score = 0
         self.play_time = 0              # int
-        self.init_time = time.time()    # float
         
         #self.inventory = dict()     # key: str (item's name), value: int (quantity)
         #self.item_set = dict()      # key: str (item's place), value: str (item's name)
@@ -672,6 +684,9 @@ class UserInfo:
     
 
     def save_file(self):
+        if self.high_score < self.score:
+            print('new record!')
+            self.high_score = self.score
 
         self.play_time += int(time.time() - self.init_time)
         with open(UserInfo.filename1, 'w') as f:
@@ -834,15 +849,13 @@ class TextView(GameObject):
     def __init__(self, room, id, x, y, width, height, image=None, text: str = None, color: tuple = None):
         super().__init__(room, id, x, y, width, height, image)
         self.color = color if color is not None else (255,255,255)
-        self.set_text(text)
+        self.text = str(text)
         
     def act(self, _):
         pass #self.refresh()
 
     def refresh(self):
-        if self.text is None: 
-            self.img = DisplayManager.get_rectangle_image(self.width, self.height, self.color)
-        else:
+        if self.text is not None:
             self.img = DisplayManager.get_text_image(self.width, self.height, self.text, self.color)
 
     def set_text(self, msg):
@@ -876,18 +889,17 @@ class Character(GameObject):
 
 #############################################################################
 #                                                                           #
-# Gold.py                                                                   #
+# Item.py                                                                   #
 #                                                                           #
 #############################################################################
 
-
-class Gold(GameObject):
+class Item(GameObject):
     size = 8
     def __init__(self, room, id, x, y, image=None, dir=None):
         # actually, speed and dir must not be None
-        super().__init__(room, id, x, y, Gold.size, Gold.size, image)
+        super().__init__(room, id, x, y, Item.size, Item.size, image)
         self.dir = dir
-        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/res/spr_coin.png", 'rb')))
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/res/spr_item.png", 'rb')))
 
     def act(self, _):
         self.move_by_dir(self.room.speed, self.dir)
@@ -896,9 +908,46 @@ class Gold(GameObject):
             self.destroy()
         
         if self.check_collision(self.room.obj_player):
-            print(f"gold++; current : {self.room.user_info.gold}")
-            self.room.user_info.gold += 1
-            self.destroy()
+            self.gain_effect()
+
+    def gain_effect(self):
+        print(f"item get")
+        
+        tmp = random.random()
+        
+        if (tmp < 0.2):     # 20% - player movement to right
+            print('player acceleration')
+            for i in range(3):
+                self.room.obj_player.move_by_dir(2, SimpleDirection.RIGHT)
+        elif tmp < 0.4:     # 20% - boss heal by half-hp
+            print('boss heal')
+            self.room.obj_boss.hp.heal(self.room.obj_boss.hp.max_hp // 2)
+        elif tmp < 0.6:     # 20% - remove all laser
+            print('bomb')
+            for obj in list(self.room.objects.values()):
+                if isinstance(obj, Laser):
+                    self.room.del_object(obj)
+        elif tmp < 0.8:     # 20% - launch bullets to all directions, twice.
+            print('bullet storm')
+            for dir in SimpleDirection:
+                self.room.obj_player.launch_projectile(dir)
+            
+            for dir in SimpleDirection:
+                self.room.obj_player.launch_projectile(dir)
+        else:               # that's unlucky
+            print('lose...')
+
+
+class Gold(Item):
+    def __init__(self, room, id, x, y, image=None, dir=None):
+        # actually, speed and dir must not be None
+        super().__init__(room, id, x, y, image, dir)
+        self.set_img(Image.open(open(abspath(os.getcwd()) + r"/res/spr_coin.png", 'rb')))
+
+    def gain_effect(self):
+        print(f"gold++; current : {self.room.user_info.gold}")
+        self.room.user_info.gold += 1
+        self.destroy()
 
 
 #############################################################################
@@ -915,6 +964,7 @@ class Enemy(Character):
         #self.speed = self.room.speed
         self.dir = dir
         self.speed = speed
+        self.item_rate = 0.9    # item first. gold drops only when item was not dropped.
         self.drop_rate = 0.2    # or else
 
     def __del__(self):
@@ -924,10 +974,13 @@ class Enemy(Character):
     def destroy(self, on_hit=False):
         if on_hit:
             self.room.user_info.score += 5
-            if self.is_dropped():
+            if random.random() < self.item_rate:
+                print('item!')
+                self.room.create_object(Item, (self.center_x - Item.size//2, self.center_y - Item.size//2, None, SimpleDirection.LEFT))
+
+            elif random.random() < self.drop_rate:
                 print('drop!')
-                self.room.create_object(Gold, (self.center_x - Gold.size//2, self.center_y - Gold.size//2, None, SimpleDirection.LEFT))
-                pass # generate gold, item, or else
+                self.room.create_object(Gold, (self.center_x - Item.size//2, self.center_y - Item.size//2, None, SimpleDirection.LEFT))
         
         super().destroy()
 
@@ -935,7 +988,6 @@ class Enemy(Character):
         super().act(input_devices)
         self.move_by_dir(self.speed, self.dir)
 
-        #print(self, self.center.is_left_than(Pos(0,0)))
         if self.center.is_left_than(Pos(0, 0)) or\
         (self.dir == SimpleDirection.UP or self.dir == SimpleDirection.LUP) and self.center.is_above_than(Pos(0,0)) or\
         (self.dir == SimpleDirection.DOWN or self.dir == SimpleDirection.LDOWN) and self.center.is_below_than(Pos(0,240)):
@@ -945,8 +997,9 @@ class Enemy(Character):
             self.room.obj_player.on_hit(3)
             self.destroy()
 
-    def is_dropped(self):
-        return random.random() < self.drop_rate
+        if self.check_collision(self.room.obj_boss):
+            self.room.obj_boss.on_hit(5)
+            self.destroy()
 
 
 # move up-downward, fire the laser
@@ -983,7 +1036,6 @@ class Boss(Character):
 
         self.hpbar = None
 
-
     def act(self, input_devices: tuple):
         super().act(input_devices)
         
@@ -1005,7 +1057,7 @@ class Boss(Character):
             self.room.create_object(Laser, (self.center_x, self.room.obj_player.center_y, 8, 2, None, 3, SimpleDirection.RIGHT))
         '''
 
-        if self.center.distance_to(self.room.obj_player.center) < 15:
+        if self.center.distance_to(self.room.obj_player.center) < 16:
             # something more...?
             print('oops')
             self.room.obj_player.destroy()
@@ -1015,6 +1067,8 @@ class Boss(Character):
             self.destroy()
             self.room.obj_player.destroy()
 
+    def on_hit(self, dmg=1):
+        self.hp.damage(dmg)
 
 class HP:
     
@@ -1199,7 +1253,7 @@ class Bullet(GameObject):
             if self.check_collision(targ):
                 if isinstance(targ, Enemy):
                     print("Bullet hit!!")
-                    targ.destroy()
+                    targ.destroy(on_hit=True)
                     self.destroy()
                 elif type(targ) == Laser and not targ.reflected:
                     targ.reflect()
@@ -1219,16 +1273,14 @@ class Laser(GameObject):
         if (not self.is_in_room()):
             self.destroy()
 
-        for targ in list(self.room.objects.values()):
-            if self.check_collision(targ):
-                if targ == self.room.obj_player:
-                    print("Laser hit!!")
-                    self.room.obj_player.on_hit()
-                    self.destroy()
-                if type(targ) == Boss:
-                    print("Boss : laser hit")
-                    targ.hp.damage(1)
-                    self.destroy()
+        if self.check_collision(self.room.obj_player):
+            print("Laser hit!!")
+            self.room.obj_player.on_hit()
+            self.destroy()
+        elif self.check_collision(self.room.obj_boss):
+            print("Boss : laser hit!")
+            self.room.obj_boss.on_hit(1)
+            self.destroy()
 
     def reflect(self):
         self.reflected = True
