@@ -459,11 +459,6 @@ class Room:
             for k, v in self.objects.items():
                 print(k, v)
             
-            try:
-                self.del_object(self.objects[obj.id-1])
-                self.del_object(self.objects[obj.id+1])
-            except KeyError:
-                pass
         
         gc.collect()
         self.reset_image()
