@@ -545,10 +545,10 @@ class GameRoom(Room):
             spawn_y = (self.obj_player.center_y + self.obj_player.y) // 2 + random.randint(-5, 5)
             move_dir = SimpleDirection.LEFT
 
-            if tmp > 0.95:      # in-formation
-                enemy_speed //= 4
-                self.create_object(instance_class, (spawn_x-16, spawn_y-20, 16, 16, enemy_speed, enemy_img, move_dir))
-                self.create_object(instance_class, (spawn_x+16, spawn_y+20, 16, 16, enemy_speed, enemy_img, move_dir))
+            if tmp > 0.9:      # in-formation
+                enemy_speed //= 2
+                self.create_object(instance_class, (spawn_x-8, spawn_y-20, 16, 16, enemy_speed, enemy_img, move_dir))
+                self.create_object(instance_class, (spawn_x+8, spawn_y+20, 16, 16, enemy_speed, enemy_img, move_dir))
 
         self.create_object(instance_class, (spawn_x, spawn_y, 16, 16, enemy_speed, enemy_img, move_dir))
 
