@@ -547,8 +547,8 @@ class GameRoom(Room):
 
             if tmp > 0.95:      # in-formation
                 enemy_speed //= 4
-                self.create_object(instance_class, (spawn_x-16, spawn_y-20, 16, 16, enemy_speed//4, enemy_img, move_dir))
-                self.create_object(instance_class, (spawn_x+16, spawn_y+20, 16, 16, enemy_speed//4, enemy_img, move_dir))
+                self.create_object(instance_class, (spawn_x-16, spawn_y-20, 16, 16, enemy_speed, enemy_img, move_dir))
+                self.create_object(instance_class, (spawn_x+16, spawn_y+20, 16, 16, enemy_speed, enemy_img, move_dir))
 
         self.create_object(instance_class, (spawn_x, spawn_y, 16, 16, enemy_speed, enemy_img, move_dir))
 
